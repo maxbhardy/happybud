@@ -27,7 +27,10 @@ export default function FooterNav() {
       </TouchableOpacity>
 
       {/* Plus Button */}
-      <TouchableOpacity className="items-center justify-center bg-[#F8C6A4] rounded-full p-4 -mt-8">
+      <TouchableOpacity
+        className="items-center justify-center bg-[#F8C6A4] rounded-full p-4 -mt-8"
+        onPress={() => router.push("/CameraScreen")}
+      >
         <Text className="text-[#4A7C59] text-2xl font-bold">+</Text>
       </TouchableOpacity>
 
