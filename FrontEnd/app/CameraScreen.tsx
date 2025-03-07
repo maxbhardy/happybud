@@ -28,6 +28,8 @@ import {
     }
   
     if (!permission.granted) {
+      requestPermission();
+      /*
       return (
         <SafeAreaView className="flex-1 bg-[#DFD8D1]">
           <View className="flex-1 align-center justify-center">
@@ -44,6 +46,7 @@ import {
         </SafeAreaView>
         
       );
+      */
     }
   
     const takePicture = async () => {
@@ -149,26 +152,13 @@ import {
             <Pressable onPress={pickImageAsync}>
               {<Ionicons name="image-outline" size={30} color="white"/>}
             </Pressable>
-            <Pressable onPress={takePicture}>
-              {({ pressed }) => (
-                <View
-                  style={[
-                    styles.shutterBtn,
-                    {
-                      opacity: pressed ? 0.5 : 1,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.shutterBtnInner,
-                      {
-                        backgroundColor: "white",
-                      },
-                    ]}
-                  />
-                </View>
-              )}
+            <Pressable
+              onPress={takePicture}
+              className="group rounded-full w-[70] h-[70] bg-white items-center justify-center active:opacity-50"
+            >
+              <View className="rounded-full w-[60] h-[60] bg-black items-center justify-center">
+                <View className="rounded-full w-[50] h-[50] bg-white group-active:opacity-50"/>
+              </View>
             </Pressable>
             <Pressable onPress={toggleFacing}>
               <Ionicons name="camera-reverse" size={32} color="white" />
@@ -184,27 +174,3 @@ import {
       </SafeAreaView>
     );
   }
-  
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: "#fff",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    shutterBtn: {
-      backgroundColor: "transparent",
-      borderWidth: 5,
-      borderColor: "white",
-      width: 75,
-      height: 75,
-      borderRadius: 45,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    shutterBtnInner: {
-      width: 60,
-      height: 60,
-      borderRadius: 50,
-    },
-  });
