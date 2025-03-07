@@ -12,6 +12,7 @@ import {
   import { Image } from "expo-image";
   import { Ionicons } from "@expo/vector-icons";
   import { useRouter } from "expo-router";
+  import * as ImagePicker from 'expo-image-picker';
   
   export default function CmeraScreen() {
     const [permission, requestPermission] = useCameraPermissions();
@@ -68,6 +69,18 @@ import {
     const toggleFlash = () => {
       setFlash((prev) => (prev === "off" ? "on" : "off"))
     }
+
+    const pickImageAsync = async () => {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+      });
+  
+      if (!result.canceled) {
+        setUri(result.assets[0].uri);
+      }
+    };
   
     const renderPicture = () => {
       return (
@@ -133,7 +146,7 @@ import {
             responsiveOrientationWhenOrientationLocked
           />
           <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
-            <Pressable>
+            <Pressable onPress={pickImageAsync}>
               {<Ionicons name="image-outline" size={30} color="white"/>}
             </Pressable>
             <Pressable onPress={takePicture}>
