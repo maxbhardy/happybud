@@ -29,40 +29,11 @@ import {
   
     if (!permission.granted) {
       requestPermission();
-      /*
-      return (
-        <SafeAreaView className="flex-1 bg-[#DFD8D1]">
-          <View className="flex-1 align-center justify-center">
-            <Text className="text-2x1 font-bold text-center text-[#1A3244]">
-              Vous devez autorser l'utilisation de la caméra
-            </Text>
-              <Pressable onPress={requestPermission} className="flex-2 flex-row align-center justify-center">
-                <Ionicons name="camera" color="#1A3244" size={64}/>
-                <Text className="text-2x1 font-bold text-center text-[#1A3244] align-middle">
-                  Donner l'autorisation
-                </Text>
-              </Pressable>
-        </View>
-        </SafeAreaView>
-        
-      );
-      */
     }
   
     const takePicture = async () => {
       const photo = await ref.current?.takePictureAsync();
       setUri(photo?.uri);
-    };
-  
-    const recordVideo = async () => {
-      if (recording) {
-        setRecording(false);
-        ref.current?.stopRecording();
-        return;
-      }
-      setRecording(true);
-      const video = await ref.current?.recordAsync();
-      console.log({ video });
     };
   
     const toggleFacing = () => {
