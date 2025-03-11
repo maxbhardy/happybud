@@ -20,6 +20,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from 'expo-image-manipulator';
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -63,6 +64,31 @@ export default function CmeraScreen() {
       setUri(result.assets[0].uri);
     }
   };
+
+  const resizeImage = async () => {
+    if (!uri) {
+      return null;
+    }
+
+    // Resize 224 x 224
+    const imageContext = await ImageManipulator.useImageManipulator(uri)
+    imageContext.resize({width:224, height:224});
+    const image = await imageContext.renderAsync();
+    const result = await image.saveAsync({format: ImageManipulator.SaveFormat.PNG,});
+
+    return result.uri
+  }
+
+  const convertImageToArray = async (uri: string) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(blob);
+    const buffer = reader.result;
+
+    const float32Array = new Float32Array(buffer);
+  }
 
   const renderPicture = () => {
     return (
