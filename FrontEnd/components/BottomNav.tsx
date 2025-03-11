@@ -6,7 +6,7 @@ export default function FooterNav() {
   const pathname = usePathname(); // Get the current route
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 flex-row bg-[#4A7C59] p-4 justify-around">
+    <View className="absolute bottom-0 left-0 right-0 flex-row bg-[#4A7C59] p-3 justify-around ">
       {/* Home Button */}
       <TouchableOpacity
         className={`items-center ${
@@ -28,7 +28,7 @@ export default function FooterNav() {
 
       {/* Plus Button */}
       <TouchableOpacity
-        className="items-center justify-center bg-[#F8C6A4] rounded-full p-4 -mt-8"
+        className="items-center justify-center bg-[#F8C6A4] rounded-full p-4 -mt-8 ml-4"
         onPress={() => router.push("/CameraScreen")}
       >
         <Text className="text-[#4A7C59] text-2xl font-bold">+</Text>
