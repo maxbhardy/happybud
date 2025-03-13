@@ -12,6 +12,7 @@ import {
   Button,
   Pressable,
   StyleSheet,
+  Dimensions,
   Text,
   View,
   SafeAreaView,
@@ -21,6 +22,8 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -31,6 +34,11 @@ export default function CmeraScreen() {
   const [recording, setRecording] = useState(false);
   const router = useRouter();
   const { plant } = useLocalSearchParams();
+  
+
+
+  const { width, height } = Dimensions.get("window");
+  const squareSize = width * 0.8;
 
   if (!permission) {
     return null;
@@ -41,9 +49,72 @@ export default function CmeraScreen() {
   }
 
   const takePicture = async () => {
-    const photo : any = await ref.current?.takePictureAsync();
-    setUri(photo?.uri);
+    // Capture the picture
+    const photo = await ref.current?.takePictureAsync();
+    if (photo?.uri) {
+      // Get the dimensions of the original image
+      const { width, height } = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // Set the desired crop area (for example, a square crop in the center)
+      const squareSize = Math.min(width, height) * 0.8; // 80% of the smaller dimension
+      const crop = {
+        originX: (width - squareSize) / 2,
+        originY: (height - squareSize) / 2,
+        width: squareSize,
+        height: squareSize,
+      };
+
+      // Perform the crop
+      const cropped = await ImageManipulator.manipulateAsync(
+        photo.uri,
+        [{ crop }],
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      // Set the cropped image URI to state
+      setUri(cropped.uri);
+    }
   };
+  
+  const cropImage = async (imageUri: string) => {
+    if (!ref.current) return;
+  
+    const cameraSizes = await ref.current?.getAvailablePictureSizesAsync();
+    if (!cameraSizes || cameraSizes.length === 0) return;
+    
+    const selectedSize = cameraSizes[cameraSizes.length - 1]; // Pick the largest size
+    const [cameraWidth, cameraHeight] = selectedSize.split("x").map(Number);
+    
+  
+    const squareSize = Math.min(cameraWidth, cameraHeight) * 0.8; // Crop based on camera view
+  
+    const cropped = await ImageManipulator.manipulateAsync(
+      imageUri,
+      [
+        {
+          crop: {
+            originX: (cameraWidth - squareSize) / 2,
+            originY: (cameraHeight - squareSize) / 2,
+            width: squareSize,
+            height: squareSize,
+          },
+        },
+      ],
+      { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+    );
+  
+    if (cropped?.uri) {
+      setUri(cropped.uri);
+    } else {
+      console.error("Image cropping failed");
+    }
+  };
+  
+  
 
   const toggleFacing = () => {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
@@ -93,7 +164,7 @@ export default function CmeraScreen() {
         />
         <View className="flex-1 mx-8">
           <Text className="text-2 text-center text-[#ffffff] pt-10">
-            Souhaitez-vous soumettre la photo à l'algorithme ou la reprendre ?
+            Souhaitez-vous soukmettre la photo à l'algorithme ou la reprendre ?
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
@@ -110,6 +181,8 @@ export default function CmeraScreen() {
 
   const renderCamera = () => {
     return (
+      
+      
       <View className="flex-1 px-[10] pt-5">
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
           <TouchableOpacity>
@@ -141,6 +214,20 @@ export default function CmeraScreen() {
           facing={facing}
           responsiveOrientationWhenOrientationLocked
         />
+
+        <View
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: squareSize,
+            height: squareSize,
+            transform: [{ translateX: -squareSize / 2 }, { translateY: -squareSize / 2 }],
+            borderWidth: 3,
+            borderColor: "white",
+          }}
+        />
+
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
           <TouchableOpacity onPress={pickImageAsync}>
             {<Ionicons name="image-outline" size={30} color="white" />}
