@@ -16,12 +16,10 @@ export default function OnnxTest() {
 
   const loadModel = async()=>{
     try {
-      //const assets = await Asset.loadAsync([require('./assets/models/mnist.ort'),require('./assets/3.jpg')]);
-      const assets = await Asset.loadAsync([require('./assets/models/mnist.ort'),require('./assets/images/plants/carrot.png')]);
-
+      const assets = await Asset.loadAsync([require('../assets/models/mnist.ort'),require('../assets/3.jpg')]);
       const modelUri = assets[0]?.localUri;
-
       const imageUri = assets[1]?.localUri;
+      
       if(imageUri){
         const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: 'base64' });
         setImageBase64(base64)
