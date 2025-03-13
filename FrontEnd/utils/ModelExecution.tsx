@@ -1,5 +1,26 @@
 import ort from 'onnxruntime-react-native';
+import pixelPng from 'react-native-pixel-png';
+import pixelUtil from 'react-native-pixel-util';
 
+
+export async function load_and_resize_png(img_path:string) {
+
+    var images = await pixelPng.parse(img_path);
+        
+    var imageData= images[0]
+    console.log(imageData.data)
+
+    const newImageData = pixelUtil.resizeImageDatas(
+        imageData,
+        224,
+        224,
+        'nearest-neighbor',
+    );
+    console.log(newImageData.data);
+    var floatArray = new Float32Array(newImageData.data);
+    return floatArray;
+
+}
 
 export async function modelPredict(array: any): Promise<any> {
     // 1. Convert image to tensor
