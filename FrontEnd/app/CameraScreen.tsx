@@ -99,7 +99,7 @@ export default function CmeraScreen() {
           <Pressable onPress={() => setUri(null)}>
             <Ionicons name="arrow-undo-outline" size={30} color="white" />
           </Pressable>
-          <Pressable>
+          <Pressable onPress={() => router.push("/OnnxTest")}>
             <Ionicons name="checkmark-circle-outline" size={30} color="white" />
           </Pressable>
         </View>
