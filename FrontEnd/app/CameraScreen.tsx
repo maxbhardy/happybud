@@ -15,6 +15,7 @@ import {
   Text,
   View,
   SafeAreaView,
+  TouchableOpacity,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -40,7 +41,7 @@ export default function CmeraScreen() {
   }
 
   const takePicture = async () => {
-    const photo = await ref.current?.takePictureAsync();
+    const photo : any = await ref.current?.takePictureAsync();
     setUri(photo?.uri);
   };
 
@@ -68,7 +69,7 @@ export default function CmeraScreen() {
     return (
       <View className="flex-1 px-[10] pt-5">
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
-          <Pressable>
+          <TouchableOpacity>
             {
               <Ionicons
                 name="arrow-back"
@@ -77,7 +78,7 @@ export default function CmeraScreen() {
                 onPress={() => router.push("/")}
               />
             }
-          </Pressable>
+          </TouchableOpacity>
           {/* <Text className="text-2xl font-bold text-center text-white">
             Camera
           </Text> */}
@@ -96,12 +97,12 @@ export default function CmeraScreen() {
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
-          <Pressable onPress={() => setUri(null)}>
+          <TouchableOpacity onPress={() => setUri(null)}>
             <Ionicons name="arrow-undo-outline" size={30} color="white" />
-          </Pressable>
-          <Pressable onPress={() => router.push("/OnnxTest")}>
-            <Ionicons name="checkmark-circle-outline" size={30} color="white" />
-          </Pressable>
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Ionicons name="checkmark-circle-outline" size={30} color="white"  onPress={() => router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`)}/>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -111,7 +112,7 @@ export default function CmeraScreen() {
     return (
       <View className="flex-1 px-[10] pt-5">
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
-          <Pressable>
+          <TouchableOpacity>
             {
               <Ionicons
                 name="arrow-back"
@@ -120,17 +121,17 @@ export default function CmeraScreen() {
                 onPress={() => router.push("/")}
               />
             }
-          </Pressable>
+          </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
             {plant || "Camera"}
           </Text>
-          <Pressable onPress={toggleFlash}>
+          <TouchableOpacity onPress={toggleFlash}>
             {flash === "off" ? (
               <Ionicons name="flash-off" size={30} color="white" />
             ) : (
               <Ionicons name="flash" size={30} color="white" />
             )}
-          </Pressable>
+          </TouchableOpacity>
         </View>
         <CameraView
           //className="flex-6 w-full h-full"
@@ -141,20 +142,20 @@ export default function CmeraScreen() {
           responsiveOrientationWhenOrientationLocked
         />
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
-          <Pressable onPress={pickImageAsync}>
+          <TouchableOpacity onPress={pickImageAsync}>
             {<Ionicons name="image-outline" size={30} color="white" />}
-          </Pressable>
-          <Pressable
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={takePicture}
             className="group rounded-full w-[70] h-[70] bg-white items-center justify-center active:opacity-50"
           >
             <View className="rounded-full w-[60] h-[60] bg-black items-center justify-center">
               <View className="rounded-full w-[50] h-[50] bg-white group-active:opacity-50" />
             </View>
-          </Pressable>
-          <Pressable onPress={toggleFacing}>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={toggleFacing}>
             <Ionicons name="camera-reverse" size={32} color="white" />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     );
