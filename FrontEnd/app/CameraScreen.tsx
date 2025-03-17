@@ -16,11 +16,14 @@ import {
   View,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Image } from "expo-image";
+import { Asset } from 'expo-asset';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as ort from 'onnxruntime-react-native';
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -31,6 +34,9 @@ export default function CmeraScreen() {
   const [recording, setRecording] = useState(false);
   const router = useRouter();
   const { plant } = useLocalSearchParams();
+  const [model, setModel] = useState(null);
+  const [runResult, setRunResult] = useState(null);
+  const [runningModel, setRunningModel] = useState(false);
 
   if (!permission) {
     return null;
@@ -64,6 +70,71 @@ export default function CmeraScreen() {
       setUri(result.assets[0].uri);
     }
   };
+
+  const loadModel = async () => {
+    if (model) {
+      return model;
+    }
+    else {
+      try {
+        const assets = await Asset.loadAsync([require('../assets/models/tomato_model_2025_02_28_v2.ort')]);
+        //const assets = await Asset.loadAsync([require('../assets/models/mnist.ort')]);
+        const modelUri = assets[0]?.localUri;
+
+        if (modelUri) {
+          let myModel = await ort.InferenceSession.create(modelUri);
+          setModel(myModel);
+          console.log('Model is loaded');
+          return myModel;
+        }
+        else {
+          console.log('Cannot load the model', `${assets[0]}`);
+          setModel(null);
+          return null;
+        }
+      }
+      catch (e) {
+        console.log('Cannot load the model', `${e}`);
+        setModel(null);
+        throw e;
+      }
+    }
+  };
+
+  const runModel = async () => {
+    setRunningModel(true);
+    // Check if model is loaded, and load it if not
+    try {
+      let myModel = await loadModel();
+
+      // Load image into a tensor
+      const inputData = new Float32Array(224 * 224 * 3);
+      // Fill array with image data
+      const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
+
+      // Prepare model input
+      const feeds = { l_x_: inputTensor };
+      const fetches = await myModel.run(feeds);
+      const output = fetches[myModel.outputNames[0]];
+
+      if (!output) {
+        console.log('Failed to get output from model inference');
+        setRunResult(null);
+      }
+      else {
+        console.log('Model inference has returned output', `output shape: ${output.dims}, output data: ${output.data}`);
+        setRunResult(output);
+      }
+    }
+    catch (e) {
+      console.log(e);
+      setRunResult(null);
+      setRunningModel(false);
+      throw e;
+    }
+    setRunningModel(false);
+    router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`);
+  }
 
   const renderPicture = () => {
     return (
@@ -100,9 +171,13 @@ export default function CmeraScreen() {
           <TouchableOpacity onPress={() => setUri(null)}>
             <Ionicons name="arrow-undo-outline" size={30} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Ionicons name="checkmark-circle-outline" size={30} color="white"  onPress={() => router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`)}/>
-          </TouchableOpacity>
+          {
+            runningModel ?
+            <ActivityIndicator color="white"/> :
+            <TouchableOpacity>
+              <Ionicons name="checkmark-circle-outline" size={30} color="white"  onPress={runModel}/>
+            </TouchableOpacity>
+          }
         </View>
       </View>
     );
