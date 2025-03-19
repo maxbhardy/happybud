@@ -49,70 +49,45 @@ export default function CmeraScreen() {
   }
 
   const takePicture = async () => {
-    // Capture the picture
-    const photo = await ref.current?.takePictureAsync();
+    if (!ref.current) return;
+  
+    const photo: any = await ref.current.takePictureAsync();
+    console.log("Original photo:", photo?.uri); // Log original image
+  
     if (photo?.uri) {
-      // Get the dimensions of the original image
-      const { width, height } = await ImageManipulator.manipulateAsync(
-        photo.uri,
-        [],
-        { format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      // Set the desired crop area (for example, a square crop in the center)
-      const squareSize = Math.min(width, height) * 0.8; // 80% of the smaller dimension
-      const crop = {
-        originX: (width - squareSize) / 2,
-        originY: (height - squareSize) / 2,
-        width: squareSize,
-        height: squareSize,
-      };
-
-      // Perform the crop
-      const cropped = await ImageManipulator.manipulateAsync(
-        photo.uri,
-        [{ crop }],
-        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      // Set the cropped image URI to state
-      setUri(cropped.uri);
+      cropImage(photo.uri);
     }
   };
   
   const cropImage = async (imageUri: string) => {
     if (!ref.current) return;
   
-    const cameraSizes = await ref.current?.getAvailablePictureSizesAsync();
-    if (!cameraSizes || cameraSizes.length === 0) return;
-    
-    const selectedSize = cameraSizes[cameraSizes.length - 1]; // Pick the largest size
-    const [cameraWidth, cameraHeight] = selectedSize.split("x").map(Number);
-    
+    // Get the dimensions of the original image
+    const { width, height } = await ImageManipulator.manipulateAsync(imageUri, [], {
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
   
-    const squareSize = Math.min(cameraWidth, cameraHeight) * 0.8; // Crop based on camera view
+    const squareSize = Math.min(width, height) * 0.8; // 80% of the smaller dimension
+    const crop = {
+      originX: (width - squareSize) / 2,
+      originY: (height - squareSize) / 2,
+      width: squareSize,
+      height: squareSize,
+    };
   
     const cropped = await ImageManipulator.manipulateAsync(
       imageUri,
-      [
-        {
-          crop: {
-            originX: (cameraWidth - squareSize) / 2,
-            originY: (cameraHeight - squareSize) / 2,
-            width: squareSize,
-            height: squareSize,
-          },
-        },
-      ],
+      [{ crop }],
       { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
     );
   
     if (cropped?.uri) {
       setUri(cropped.uri);
     } else {
-      console.error("Image cropping failed");
+      console.error("Image cropping failed", cropped);
     }
   };
+  
   
   
 
@@ -164,7 +139,7 @@ export default function CmeraScreen() {
         />
         <View className="flex-1 mx-8">
           <Text className="text-2 text-center text-[#ffffff] pt-10">
-            Souhaitez-vous soukmettre la photo à l'algorithme ou la reprendre ?
+            Souhaitez-vous soukmettre la jkphoto à l'algorithme ou la reprendre ?
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
@@ -217,16 +192,21 @@ export default function CmeraScreen() {
 
         <View
           style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            width: squareSize,
+            position: "absolute", // Position relative to the screen
+            top: "50%", // Position at the vertical center of the screen
+            left: "0%", // Position at the horizontal center of the screen
             height: squareSize,
-            transform: [{ translateX: -squareSize / 2 }, { translateY: -squareSize / 2 }],
-            borderWidth: 3,
+            width: squareSize,
+            marginTop: -squareSize/2, // Shift up by half the size to center
+            marginLeft: width*0.1, // Shift left by half the size to center
+            //marginTop: -squareSize / 2, // Shift up by half the size to center
+            //marginLeft: -squareSize  / 2, // Shift left by half the size to center
+            borderWidth: 10,
             borderColor: "white",
           }}
         />
+
+
 
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
           <TouchableOpacity onPress={pickImageAsync}>
@@ -249,8 +229,9 @@ export default function CmeraScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#000000]">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
       {uri ? renderPicture() : renderCamera()}
     </SafeAreaView>
+
   );
 }
