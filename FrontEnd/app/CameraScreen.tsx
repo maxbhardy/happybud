@@ -77,8 +77,7 @@ export default function CmeraScreen() {
     }
     else {
       try {
-        const assets = await Asset.loadAsync([require('../assets/models/tomato_model_2025_02_28_v2.ort')]);
-        //const assets = await Asset.loadAsync([require('../assets/models/mnist.ort')]);
+        const assets = await Asset.loadAsync([require('../assets/models/plant_model_2025_03_21.ort')]);
         const modelUri = assets[0]?.localUri;
 
         if (modelUri) {
@@ -113,7 +112,7 @@ export default function CmeraScreen() {
       const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
 
       // Prepare model input
-      const feeds = { l_x_: inputTensor };
+      const feeds = { x: inputTensor };
       const fetches = await myModel.run(feeds);
       const output = fetches[myModel.outputNames[0]];
 
