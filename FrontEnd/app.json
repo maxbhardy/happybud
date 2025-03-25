@@ -38,7 +38,8 @@
         }
       ],
       "expo-asset",
-      "onnxruntime-react-native"
+      "onnxruntime-react-native",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true
