@@ -155,7 +155,7 @@ const IdentificationScreen = () => {
           {/* Draggable Indicator (Swipe Detection Only at the Top) */}
           <View {...panResponder.panHandlers}>
             <TouchableWithoutFeedback onPress={hideSolutionsPanel}>
-              <View className="items-center h-20 -mb-10 bg-white pt-4">
+              <View className="items-center h-20 -mb-10  pt-4">
                 <View className="w-28 h-2 bg-gray-700 rounded-full" />
               </View>
             </TouchableWithoutFeedback>
