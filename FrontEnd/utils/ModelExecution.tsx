@@ -1,26 +1,47 @@
 import ort from 'onnxruntime-react-native';
-import pixelPng from 'react-native-pixel-png';
-import pixelUtil from 'react-native-pixel-util';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as Skia from "@shopify/react-native-skia";
+
+
 
 
 export async function load_and_resize_png(img_path:string) {
 
-    var images = await pixelPng.parse(img_path);
-        
-    var imageData= images[0]
-    console.log(imageData.data)
+    const context = ImageManipulator.useImageManipulator(img_path);
+  
+    // Step 2: Apply transformations
+    const resized = context.resize({ width: 800 });
+    
+    // Step 3: Render the result
+    const transformed = await resized.renderAsync();
 
-    const newImageData = pixelUtil.resizeImageDatas(
-        imageData,
-        224,
-        224,
-        'nearest-neighbor',
-    );
-    console.log(newImageData.data);
-    var floatArray = new Float32Array(newImageData.data);
-    return floatArray;
+    const result = await transformed.saveAsync();
+
+
+    const surface = Skia.Image.makeFromEncoded(result);
+    const pixels = surface.ref.image.toRasterImage();
+  
+    // Get pixel data
+    const width = pixels.width;
+    const height = pixels.height;
+    const pixelData = new Uint8Array(width * height * 4); // RGBA
+    const RGDData = new Uint8Array(width * height * 3);
+    
+    // Read pixels
+    pixels.readPixels(pixelData, 0, 0);
+    var offset = 0;
+
+    for (let i = 0; i < pixelData.length; i += 4) {
+        RGDData[i - offset] = pixelData[i];
+        RGDData[i+1 - offset] = pixelData[i+1];
+        RGDData[i+2 - offset] = pixelData[i+2];
+        offset +=1;
+    }
+
+    return RGDData;
 
 }
+
 
 export async function modelPredict(array: any): Promise<any> {
     // 1. Convert image to tensor
