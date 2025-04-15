@@ -26,7 +26,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ort from 'onnxruntime-react-native';
-import * as Skia from "@shopify/react-native-skia";
+import { Skia } from "@shopify/react-native-skia";
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -155,7 +155,7 @@ export default function CmeraScreen() {
     console.log('Test 4')
 
     // Step 4: Read pixel data
-    const surface = Skia.Image.makeFromEncoded(result);
+    const surface = Skia.Image.MakeImageFromEncoded(result);
     console.log('Test 5')
     const pixels = surface.ref.image.toRasterImage();
     console.log('Test 6')
