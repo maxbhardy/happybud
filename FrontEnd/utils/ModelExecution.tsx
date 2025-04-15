@@ -25,7 +25,7 @@ export async function load_and_resize_png(img_path:string) {
     const width = pixels.width;
     const height = pixels.height;
     const pixelData = new Uint8Array(width * height * 4); // RGBA
-    const RGDData = new Uint8Array(width * height * 3);
+    const RGDData = new Float32Array(width * height * 3);
     
     // Read pixels
     pixels.readPixels(pixelData, 0, 0);
