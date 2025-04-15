@@ -26,6 +26,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ort from 'onnxruntime-react-native';
+import * as Skia from "@shopify/react-native-skia";
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -90,9 +91,6 @@ export default function CmeraScreen() {
     }
   };
   
-  
-  
-
   const toggleFacing = () => {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
@@ -142,6 +140,47 @@ export default function CmeraScreen() {
     }
   };
 
+  const LoadAndResizePNG = async (img_path:string) => {
+    const context = ImageManipulator.useImageManipulator(img_path);
+    console.log('Test 1')
+  
+    // Step 2: Apply transformations
+    const resized = context.resize({ width: 224, height: 224 });
+    console.log('Test 2')
+    
+    // Step 3: Render the result
+    const transformed = await resized.renderAsync();
+    console.log('Test 3')
+    const result = await transformed.saveAsync();
+    console.log('Test 4')
+
+    // Step 4: Read pixel data
+    const surface = Skia.Image.makeFromEncoded(result);
+    console.log('Test 5')
+    const pixels = surface.ref.image.toRasterImage();
+    console.log('Test 6')
+  
+    // Get pixel data
+    const width = pixels.width;
+    const height = pixels.height;
+    const pixelData = new Uint8Array(width * height * 4); // RGBA
+    const RGDData = new Float32Array(width * height * 3);
+    
+    // Read pixels
+    pixels.readPixels(pixelData, 0, 0);
+    console.log('Test 7')
+    var offset = 0;
+
+    for (let i = 0; i < pixelData.length; i += 4) {
+        RGDData[i - offset] = pixelData[i];
+        RGDData[i+1 - offset] = pixelData[i+1];
+        RGDData[i+2 - offset] = pixelData[i+2];
+        offset +=1;
+    }
+
+    return RGDData;
+  }
+
   const runModel = async () => {
     setRunningModel(true);
     // Check if model is loaded, and load it if not
@@ -149,22 +188,26 @@ export default function CmeraScreen() {
       let myModel = await loadModel();
 
       // Load image into a tensor
-      const inputData = new Float32Array(224 * 224 * 3);
-      // Fill array with image data
-      const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
+      if (uri) {
+        const inputData = await LoadAndResizePNG(uri);
+        console.log('Image pixels are loaded into a float32 array')
 
-      // Prepare model input
-      const feeds = { x: inputTensor };
-      const fetches = await myModel.run(feeds);
-      const output = fetches[myModel.outputNames[0]];
+        // Fill array with image data
+        const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
 
-      if (!output) {
-        console.log('Failed to get output from model inference');
-        setRunResult(null);
-      }
-      else {
-        console.log('Model inference has returned output', `output shape: ${output.dims}, output data: ${output.data}`);
-        setRunResult(output);
+        // Prepare model input
+        const feeds = { x: inputTensor };
+        const fetches = await myModel.run(feeds);
+        const output = fetches[myModel.outputNames[0]];
+
+        if (!output) {
+          console.log('Failed to get output from model inference');
+          setRunResult(null);
+        }
+        else {
+          console.log('Model inference has returned output', `output shape: ${output.dims}, output data: ${output.data}`);
+          setRunResult(output);
+        }
       }
     }
     catch (e) {
@@ -205,7 +248,7 @@ export default function CmeraScreen() {
         />
         <View className="flex-1 mx-8">
           <Text className="text-2 text-center text-[#ffffff] pt-10">
-            Souhaitez-vous soukmettre la jkphoto à l'algorithme ou la reprendre ?
+            Souhaitez-vous soukmettre la photo à l'algorithme ou la reprendre ?
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
