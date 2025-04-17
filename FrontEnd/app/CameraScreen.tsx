@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+import React from "react";
 import { Image } from "expo-image";
 import { Asset } from 'expo-asset';
 import { Ionicons } from "@expo/vector-icons";
