@@ -40,8 +40,9 @@ CREATE TABLE IF NOT EXISTS Produits (
     Description Text,
     Fournisseur TEXT,
     Lieu TEXT,
-    Prix REAL,
+    Prix REAL
 );
+
 CREATE TABLE IF NOT EXISTS PlantSolutionRelationships (
     SolutionID INTEGER,
     ProduitId INTEGER,
