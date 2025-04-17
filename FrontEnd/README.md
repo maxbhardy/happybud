@@ -25,15 +25,22 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## Development build
 
-When you're ready, run:
+1. Install Android Studio and download the development SDK.
+2. Install Java compiler
 
-```bash
-npm run reset-project
-```
+   ```bash
+   sudo dnf install java-21-openjdk-devel
+   ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3. Compile the project
+
+   ```bash
+   ANDROID_HOME="$HOME/Android/Sdk" npx expo run:android
+   ```
+
+4. The development build can be used just as Expo Go, but it is supporting libraries that are not supported by Expo Go.
 
 ## Learn more
 
