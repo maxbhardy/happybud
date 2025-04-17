@@ -114,35 +114,6 @@ export default function CmeraScreen() {
     }
   };
 
-  const loadModelOld = async () => {
-    if (model) {
-      return model;
-    }
-    else {
-      try {
-        const assets = await Asset.loadAsync([require('../assets/models/plant_model_2025_03_21.ort')]);
-        const modelUri = assets[0]?.localUri;
-
-        if (modelUri) {
-          let myModel = await ort.InferenceSession.create(modelUri);
-          setModel(myModel);
-          console.log('Model is loaded');
-          return myModel;
-        }
-        else {
-          console.log('Cannot load the model', `${assets[0]}`);
-          setModel(null);
-          return null;
-        }
-      }
-      catch (e) {
-        console.log('Cannot load the model', `${e}`);
-        setModel(null);
-        throw e;
-      }
-    }
-  };
-
   const loadAndResizePNG = async (pictureUri: string) => {
     // Step 1: Apply transformations
     const context = ImageManipulator.ImageManipulator.manipulate(pictureUri);
