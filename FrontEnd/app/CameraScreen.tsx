@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
-import { Asset } from 'expo-asset';
+import { Asset, useAssets } from 'expo-asset';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -29,17 +29,19 @@ import * as ImageManipulator from "expo-image-manipulator";
 import * as ort from 'onnxruntime-react-native';
 import { Skia, useImage } from "@shopify/react-native-skia";
 
+const modelEncoder = require('../assets/models/generalist_model_2025_03_27_encoder.ort')
+const plantDecoder = require('../assets/models/generalist_model_plants_2025_03_27_decoder.ort')
+const tomatoDecoder = require('../assets/models/generalist_model_tomato_2025_03_27_decoder.ort')
+
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const ref = useRef<CameraView>(null);
   const [uri, setUri] = useState<string | null>(null);
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
-  const [recording, setRecording] = useState(false);
   const router = useRouter();
   const { plant } = useLocalSearchParams();
   const [model, setModel] = useState(null);
-  const [runResult, setRunResult] = useState(null);
   const [runningModel, setRunningModel] = useState(false);
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
@@ -112,7 +114,7 @@ export default function CmeraScreen() {
     }
   };
 
-  const loadModel = async () => {
+  const loadModelOld = async () => {
     if (model) {
       return model;
     }
@@ -141,7 +143,7 @@ export default function CmeraScreen() {
     }
   };
 
-  const LoadAndResizePNG = async (pictureUri: string) => {
+  const loadAndResizePNG = async (pictureUri: string) => {
     // Step 1: Apply transformations
     const context = ImageManipulator.ImageManipulator.manipulate(pictureUri);
     const resized = context.resize({ width: 224, height: 224 });
@@ -171,59 +173,81 @@ export default function CmeraScreen() {
       return null;
     }
 
-    // Step 4: Convert pixel values to float32 and remove alpha channel
-    const RGDData = new Float32Array(224 * 224 * 3);
-    var offset = 0;
-
-    for (let i = 0; i < pixelData.length; i += 4) {
-        RGDData[i - offset] = pixelData[i];
-        RGDData[i+1 - offset] = pixelData[i+1];
-        RGDData[i+2 - offset] = pixelData[i+2];
-        offset +=1;
+    // Step 4: Convert pixel values to float32 and keep alpha channel
+    const RGBAData = new Float32Array(224 * 224 * 4);
+    for (let i = 0; i < pixelData.length; i++) {
+      RGBAData[i] = pixelData[i];
     }
 
-    return RGDData;
+    // Step 5: Convert to tensor
+    const tensor = new ort.Tensor('float32', RGBAData, [224, 224, 4]);
+
+    return tensor
   }
 
-  const runModel = async () => {
+  const loadModel = async (ortModel: any) => {
+    try {
+      const assets = await Asset.loadAsync([ortModel]);
+      const modelUri = assets[0]?.localUri;
+
+      let model = await ort.InferenceSession.create(modelUri);
+      console.log('Model is loaded');
+      return model;
+    }
+    catch (e) {
+      console.log('Cannot load the model', `${e}`);
+      throw e;
+    }
+  };
+
+  const runModel = async (model: any, inputTensor: any) => {
+    try {
+      // Prepare model input
+      const feeds = { x: inputTensor };
+
+      // Fetch model output
+      const fetches = await model.run(feeds);
+      const output = fetches[model.outputNames[0]];
+
+      console.log('Model inference has succeeded');
+      
+      return output
+    }
+    catch (e) {
+      console.log('Model inference has failed', `${e}`);
+      throw e;
+    }
+  };
+
+  const diagnosePicture = async () => {
     setRunningModel(true);
 
     // Check if model is loaded, and load it if not
     try {
-      let myModel = await loadModel();
+      const encoder = await loadModel(modelEncoder);
+      const decoder = await loadModel(plantDecoder);
 
       if (uri) {
         // Load image into a tensor
-        const inputData = await LoadAndResizePNG(uri);
+        const inputTensor = await loadAndResizePNG(uri);
 
-        if (!inputData) {
+        if (!inputTensor) {
           console.log('Cannot convert picture to pixel data');
           return;
         }
 
-        console.log(`Image pixels are loaded into a float32 array with length ${inputData.length}`);
+        console.log('Image pixels are loaded into a tensor');
 
-        // Create tensor from pixel data
-        const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
+        // Encode image
+        const encoded = await runModel(encoder, inputTensor);
 
-        // Prepare model input
-        const feeds = { x: inputTensor };
-        const fetches = await myModel.run(feeds);
-        const output = fetches[myModel.outputNames[0]];
-
-        if (!output) {
-          console.log('Failed to get output from model inference');
-          setRunResult(null);
-        }
-        else {
-          console.log('Model inference has returned output', `output shape: ${output.dims}, output data: ${output.data}`);
-          setRunResult(output);
-        }
+        // Decode image
+        const decoded = await runModel(decoder, encoded);
+        console.log(`${decoded.data}`)
       }
     }
     catch (e) {
       console.log(e);
-      setRunResult(null);
       setRunningModel(false);
       throw e;
     }
@@ -270,7 +294,7 @@ export default function CmeraScreen() {
             runningModel ?
             <ActivityIndicator color="white"/> :
             <TouchableOpacity>
-              <Ionicons name="checkmark-circle-outline" size={30} color="white"  onPress={runModel}/>
+              <Ionicons name="checkmark-circle-outline" size={30} color="white"  onPress={diagnosePicture}/>
             </TouchableOpacity>
           }
         </View>
