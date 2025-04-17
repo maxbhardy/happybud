@@ -26,7 +26,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ort from 'onnxruntime-react-native';
-import { Skia } from "@shopify/react-native-skia";
+import { Skia, useImage } from "@shopify/react-native-skia";
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -140,35 +140,38 @@ export default function CmeraScreen() {
     }
   };
 
-  const LoadAndResizePNG = async (img_path:string) => {
-    const context = ImageManipulator.useImageManipulator(img_path);
-    console.log('Test 1')
-  
-    // Step 2: Apply transformations
+  const LoadAndResizePNG = async (pictureUri: string) => {
+    // Step 1: Apply transformations
+    const context = ImageManipulator.ImageManipulator.manipulate(pictureUri);
     const resized = context.resize({ width: 224, height: 224 });
-    console.log('Test 2')
     
-    // Step 3: Render the result
+    // Step 2: Render the result
     const transformed = await resized.renderAsync();
-    console.log('Test 3')
-    const result = await transformed.saveAsync();
-    console.log('Test 4')
+    const result = await transformed.saveAsync({base64: true});
 
-    // Step 4: Read pixel data
-    const surface = Skia.Image.MakeImageFromEncoded(result);
-    console.log('Test 5')
-    const pixels = surface.ref.image.toRasterImage();
-    console.log('Test 6')
-  
-    // Get pixel data
-    const width = pixels.width;
-    const height = pixels.height;
-    const pixelData = new Uint8Array(width * height * 4); // RGBA
-    const RGDData = new Float32Array(width * height * 3);
-    
-    // Read pixels
-    pixels.readPixels(pixelData, 0, 0);
-    console.log('Test 7')
+    if (!result?.base64) {
+      console.log('Cannot read base64 values of the provided picture');
+      return null;
+    }
+
+    // Step 3: Convert to Skia image
+    const image = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(result.base64));
+
+    if (!image) {
+      console.log('Skia cannot read picture base64 encoding');
+      return null;
+    }
+
+    // Step 4: Reading pixel values
+    const pixelData = image.readPixels();
+
+    if (!pixelData) {
+      console.log('Skia cannot read the pixel data from the image');
+      return null;
+    }
+
+    // Step 4: Convert pixel values to float32 and remove alpha channel
+    const RGDData = new Float32Array(224 * 224 * 3);
     var offset = 0;
 
     for (let i = 0; i < pixelData.length; i += 4) {
@@ -183,16 +186,23 @@ export default function CmeraScreen() {
 
   const runModel = async () => {
     setRunningModel(true);
+
     // Check if model is loaded, and load it if not
     try {
       let myModel = await loadModel();
 
-      // Load image into a tensor
       if (uri) {
+        // Load image into a tensor
         const inputData = await LoadAndResizePNG(uri);
-        console.log('Image pixels are loaded into a float32 array')
 
-        // Fill array with image data
+        if (!inputData) {
+          console.log('Cannot convert picture to pixel data');
+          return;
+        }
+
+        console.log(`Image pixels are loaded into a float32 array with length ${inputData.length}`);
+
+        // Create tensor from pixel data
         const inputTensor = new ort.Tensor('float32', inputData, [224, 224, 3]);
 
         // Prepare model input
@@ -269,8 +279,6 @@ export default function CmeraScreen() {
 
   const renderCamera = () => {
     return (
-      
-      
       <View className="flex-1 px-[10] pt-5">
         <View className="flex-1 w-full items-center flex-row justify-between px-[30]">
           <TouchableOpacity>
