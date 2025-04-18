@@ -37,14 +37,14 @@ export async function image_to_tensor (pictureUri: string) {
   
   // Step 2: Render the result
   const transformed = await resized.renderAsync();
-  const result = await transformed.saveAsync({base64: true});
+  const result = await transformed.saveAsync({base64: true});// Get context and dimensions of original image
 
   if (!result?.base64) {
-    console.log('Cannot read base64 values of the provided picture');
+    console.log('Cannot find the base64 encoding of the image');
     return null;
   }
-
-  // Step 3: Convert to Skia image
+  
+  // Step 3: Read the image with Skia
   const image = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(result.base64));
 
   if (!image) {
@@ -72,4 +72,33 @@ export async function image_to_tensor (pictureUri: string) {
   console.log('test2')
 
   return tensor
+};
+
+export async function create_thumbnail(image_uri: string): Promise<ImageManipulator.ImageResult> {
+  const context = ImageManipulator.ImageManipulator.manipulate(image_uri);
+  const resized = await context.resize({ width: 50, height: 50 }).renderAsync();
+
+  // Save image
+  const result = await resized.saveAsync(
+    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
+  );
+
+  return result;
+}
+
+export function create_picture_filename(): string {
+  // Get date from 'now' timestamp
+  const date = new Date();
+
+  // Format the date and time for the filename
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+
+  const filename = `IMG_${year}${month}${day}${hours}${minutes}${seconds}.jpg`;
+
+  return filename;
 }

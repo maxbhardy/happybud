@@ -24,27 +24,13 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system";
+
 import useDatabase from '../hooks/useDatabase'
 import * as picture from '../utils/picture'
 import * as onnx from '../utils/onnx'
 import * as mathlib from '../utils/mathlib'
-
-const modelEncoder = require('../assets/models/generalist_model_2025_03_27_encoder.ort')
-const plantDecoder = require('../assets/models/generalist_model_plants_2025_03_27_decoder.ort')
-const tomatoDecoder = require('../assets/models/generalist_model_tomato_2025_03_27_decoder.ort')
-
-const plantNames: { [key: string]: string } = {
-  null: 'Camera',
-  1: 'Maïs',
-  2: 'Tomate',
-  3: 'Patate',
-}
-
-const onnxModels: { [key: string]: string } = {
-  1: tomatoDecoder,
-  2: tomatoDecoder,
-  3: tomatoDecoder,
-}
+import useLocalFiles from '../hooks/useLocalFiles'
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -58,6 +44,7 @@ export default function CmeraScreen() {
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
   const db = useDatabase();
+  const dir = useLocalFiles();
 
   if (!permission) {
     return null;
@@ -116,9 +103,9 @@ export default function CmeraScreen() {
 
     // Check if model is loaded, and load it if not
     try {
-      const encoder = await onnx.load_model(modelEncoder);
+      const encoder = await onnx.load_model(dir + 'models/encoder.ort');
 
-      if (uri && db) {
+      if (uri && db && dir) {
         // Load image into a tensor
         const inputTensor = await picture.image_to_tensor(uri);
 
@@ -138,17 +125,73 @@ export default function CmeraScreen() {
           currentPlant = plant;
         }
         else {
-          const plant_decoder = await onnx.load_model(plantDecoder);
+          const plant_decoder = await onnx.load_model(dir + 'models/plant_decoder.ort');
           const decoded = await onnx.run_model(plant_decoder, encoded);
+          console.log(`Plant results: ${decoded.data}`);
           currentPlant = 1 + mathlib.argmax(decoded.data);
         }
 
         // Diagnose plant
-        const disease_decoder = await onnx.load_model(onnxModels[currentPlant]);
+        const disease_decoder = await onnx.load_model(dir + 'models/tomato_decoder.ort');
         const decoded = await onnx.run_model(disease_decoder, encoded);
         const plantClass = 1 + mathlib.argmax(decoded.data);
-        console.log(`Plant ${plant} with class ${plantClass}`);
-        
+        console.log(`Plant ${currentPlant} with class ${plantClass}`);
+
+        // Copy picture and thumbnail to local directory
+        const filename = picture.create_picture_filename();
+        const pictureURI = dir + 'pictures/' + filename;
+        await FileSystem.copyAsync({ from: uri, to: pictureURI });
+
+        const thumbnail = await picture.create_thumbnail(uri);
+        const thumbnailURI = dir + 'thumbnails/' + filename;
+        await FileSystem.copyAsync({ from: thumbnail.uri, to: thumbnailURI });
+
+        // Insert into Historique
+        let historiqueId;
+        let statement = await db.prepareAsync(
+          `INSERT INTO Historique (PlantID, PlantClassID, Timestamp, PictureURI, ThumbnailURI)
+          VALUES (?, ?, DateTime('now'), ?, ?)
+          RETURNING HistoriqueId`
+        );
+        try {
+          const result = await statement.executeAsync(
+            [currentPlant, plantClass, pictureURI, thumbnailURI]
+          );
+          historiqueId = result.lastInsertRowId;
+        }
+        finally {
+          await statement.finalizeAsync();
+        }
+
+        // Insert into HistoriqueResult
+        statement = await db.prepareAsync(
+          `INSERT INTO HistoriqueResult (HistoriqueId, PlantClassID, result)
+          VALUES (?, ?, ?)`
+        );
+        try {
+          for (let i = 0; i < decoded.data.length; i++) {
+            const result = await statement.executeAsync(
+              [historiqueId, plantClass, decoded.data[i]]
+            );
+          }
+        }
+        finally {
+          await statement.finalizeAsync();
+        }
+
+        // Display Historique to the console
+        statement = await db.prepareAsync(
+          'SELECT * FROM Historique'
+        );
+        try {
+          const result = await statement.executeAsync();
+          for await (const row of result) {
+            console.log(`${row.HistoriqueId}, ${row.PlantID}, ${row.PlantClassID}, ${row.Timestamp}, ${row.PictureURI}`);
+          }
+        }
+        finally {
+          await statement.finalizeAsync();
+        }
       }
     }
     catch (e) {
@@ -175,7 +218,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plantNames[plant] || "Camera"}
+            {plant || "Camera"}
           </Text>
           <View className="w-[30]" />
         </View>
@@ -222,7 +265,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plantNames[plant] || "Camera"}
+            {plant || "Camera"}
           </Text>
           <TouchableOpacity onPress={toggleFlash}>
             {flash === "off" ? (
