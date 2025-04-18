@@ -2,11 +2,25 @@ import { View, Text, SafeAreaView, TouchableOpacity } from "react-native";
 import React from "react";
 import BottomNav from "@/components/BottomNav";
 import { StatusBar } from "expo-status-bar";
-import { useRouter } from "expo-router";
-
+import HistoriqueComp from "@/components/HistoriqueComp";
+import SearchBar from "@/components/SearchBar";
 export default function HistoryScreen() {
-  const router = useRouter();
-
+  const data = [
+    {
+      id: 1,
+      title: "Tomate - Ravageur",
+      date: "Aujourd'hui",
+      description:
+        "Petite description mais celui-ci est grand pour montrer l'utilité de la ...",
+    },
+    {
+      id: 2,
+      title: "Tomate - Plant saint",
+      date: "Il y a 3 jours",
+      description:
+        "Description plus courte, tout va bien, aucune anomalie détectée.",
+    },
+  ];
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
       <StatusBar style="auto" />
@@ -15,17 +29,21 @@ export default function HistoryScreen() {
           Historique
         </Text>
       </View>
-      <View className="flex-1 items-center justify-center mb-20 mt-4">
-        <TouchableOpacity
-          className="flex-row items-center justify-between bg-[#B67342] rounded-full px-6 py-3 w-60"
-          onPress={() => router.push("/OnnxTest")}
-        >
-          <Text className="text-white font-bold text-base">
-            Test Modèle ONNX
-          </Text>
-        </TouchableOpacity>
+      <SearchBar />
+      <View className="my-10">
+        {data.map((item) => (
+          <HistoriqueComp
+            key={item.id}
+            title={item.title}
+            date={item.date}
+            description={item.description}
+            onPress={() => {
+              // Par exemple, navigation vers un écran de détail
+              // navigation.navigate('HistoriqueDetail', { id: item.id });
+            }}
+          />
+        ))}
       </View>
-
       <BottomNav />
     </SafeAreaView>
   );
