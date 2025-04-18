@@ -5,12 +5,12 @@ export default function Plants() {
   const router = useRouter();
   const vegetables = [
     {
-      id: 1,
+      id: 2,
       name: "Maïs",
       image: require("../assets/images/plants/carrot.png"),
     }, // 🥕 Carrot
     {
-      id: 2,
+      id: 1,
       name: "Tomate",
       image: require("../assets/images/plants/tomato.png"),
     }, // 🍅 Tomato
@@ -29,7 +29,7 @@ export default function Plants() {
           <TouchableOpacity
             key={veg.id}
             className="m-2 items-center justify-center bg-[#F8C6A4] rounded-full w-20 h-20"
-            onPress={() => router.push(`/CameraScreen?plant=${veg.id}`)}
+            onPress={() => router.push(`/CameraScreen?plant=${veg.id}&name=${veg.name}`)}
           >
             <Image
               source={veg.image}

@@ -3,6 +3,7 @@ PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS Plants (
     PlantID INTEGER PRIMARY KEY,
+    PlantOutputIndex INTEGER UNIQUE, -- Index of the model output tensor
     PlantName TEXT UNIQUE,
     PlantLogoUri TEXT,
     PlantModelUri TEXT
@@ -11,10 +12,12 @@ CREATE TABLE IF NOT EXISTS Plants (
 CREATE TABLE IF NOT EXISTS PlantClasses (
     PlantClassID INTEGER PRIMARY KEY,
     PlantID INTEGER,
+    PlantClassOutputIndex INTEGER, -- Index of the model output tensor
     ClassCode TEXT,
     ClassName TEXT,
     ClassDescription TEXT,
     ClassIdentification TEXT,
+    UNIQUE (PlantID, PlantClassOutputIndex),
     FOREIGN KEY (PlantID) REFERENCES Plants(PlantID)
 );
 

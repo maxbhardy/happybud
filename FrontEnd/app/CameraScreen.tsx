@@ -39,17 +39,17 @@ export default function CmeraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const router = useRouter();
-  const { plant } = useLocalSearchParams<{plant: string}>();
+  const { plant, name } = useLocalSearchParams<{plant: string, name: string}>();
   const [runningModel, setRunningModel] = useState(false);
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
-  const db = useDatabase();
   const dir = useLocalFiles();
+  const db = useDatabase();
 
   if (!permission) {
     return null;
   }
-
+  
   if (!permission.granted) {
     requestPermission();
   }
@@ -100,6 +100,9 @@ export default function CmeraScreen() {
 
   const diagnosePicture = async () => {
     setRunningModel(true);
+    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db');
+    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-wal');
+    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-shm');
 
     // Check if model is loaded, and load it if not
     try {
@@ -120,22 +123,86 @@ export default function CmeraScreen() {
         const encoded = await onnx.run_model(encoder, inputTensor);
         
         // Select plant
-        let currentPlant;
+        let plantID;
+        let plantName;
+        let plantModel;
+        let statement;
+
         if (plant) {
-          currentPlant = plant;
+          plantID = Number(plant);
+          
+          statement = await db.prepareAsync(
+            'SELECT PlantName, PlantModelUri FROM Plants WHERE PlantID = ?'
+          );
+          try {
+            const result = await statement.executeAsync<{PlantName: string, PlantModelUri: string}>([plant]);
+            const row = await result.getFirstAsync();
+            plantName = row?.PlantName;
+            plantModel = dir + 'models/' + row?.PlantModelUri;
+          }
+          finally {
+            await statement.finalizeAsync();
+          }
         }
         else {
           const plant_decoder = await onnx.load_model(dir + 'models/plant_decoder.ort');
           const decoded = await onnx.run_model(plant_decoder, encoded);
           console.log(`Plant results: ${decoded.data}`);
-          currentPlant = 1 + mathlib.argmax(decoded.data);
+          const plantIndex = mathlib.argmax(decoded.data);
+          
+          statement = await db.prepareAsync(
+            'SELECT PlantID, PlantName, PlantModelUri FROM Plants WHERE PlantOutputIndex = ?'
+          );
+          try {
+            const result = await statement.executeAsync<{PlantID: number, PlantName: string, PlantModelUri: string}>([plantIndex]);
+            const row = await result.getFirstAsync();
+            plantID = row?.PlantID;
+            plantName = row?.PlantName;
+            plantModel = dir + 'models/' + row?.PlantModelUri;
+          }
+          finally {
+            await statement.finalizeAsync();
+          }
+
+          if (!plantID) {
+            console.log('Cannot find the plant ID');
+            setRunningModel(false);
+            return;
+          }
         }
+        console.log(plantID);
 
         // Diagnose plant
-        const disease_decoder = await onnx.load_model(dir + 'models/tomato_decoder.ort');
+        let plantClass;
+        let plantClassCode;
+        const disease_decoder = await onnx.load_model(plantModel);
         const decoded = await onnx.run_model(disease_decoder, encoded);
-        const plantClass = 1 + mathlib.argmax(decoded.data);
-        console.log(`Plant ${currentPlant} with class ${plantClass}`);
+        const plantClassIndex = mathlib.argmax(decoded.data);
+        console.log(decoded.data);
+
+        statement = await db.prepareAsync(
+          `SELECT PlantClassID, ClassCode FROM PlantClasses
+          WHERE PlantID = ? AND PlantClassOutputIndex = ?`
+        );
+        
+        try {
+          const result = await statement.executeAsync<{PlantClassID: number, ClassCode: string}>([plantID, plantClassIndex]);
+          const row = await result.getFirstAsync();
+          plantClass = row?.PlantClassID;
+          plantClassCode = row?.ClassCode;
+          console.log(plantClass, plantClassCode, plantID, plantClassIndex);
+        }
+        finally {
+          await statement.finalizeAsync();
+        }
+
+        if (!plantClass) {
+          console.log('Cannot find the plant class');
+          setRunningModel(false);
+          return;
+        }
+
+        console.log(`Plant ${plantName} with class ${plantClassCode}`);
 
         // Copy picture and thumbnail to local directory
         const filename = picture.create_picture_filename();
@@ -148,14 +215,14 @@ export default function CmeraScreen() {
 
         // Insert into Historique
         let historiqueId;
-        let statement = await db.prepareAsync(
+        statement = await db.prepareAsync(
           `INSERT INTO Historique (PlantID, PlantClassID, Timestamp, PictureURI, ThumbnailURI)
           VALUES (?, ?, DateTime('now'), ?, ?)
           RETURNING HistoriqueId`
         );
         try {
-          const result = await statement.executeAsync(
-            [currentPlant, plantClass, pictureURI, thumbnailURI]
+          const result = await statement.executeAsync<{HistoriqueId: number}>(
+            [plantID, plantClass, pictureURI, thumbnailURI]
           );
           historiqueId = result.lastInsertRowId;
         }
@@ -181,10 +248,10 @@ export default function CmeraScreen() {
 
         // Display Historique to the console
         statement = await db.prepareAsync(
-          'SELECT * FROM Historique'
+          'SELECT HistoriqueId, PlantID, PlantClassID, Timestamp, PictureURI FROM Historique'
         );
         try {
-          const result = await statement.executeAsync();
+          const result = await statement.executeAsync<{HistoriqueId: number, PlantID: Number, PlantClassID: number, Timestamp: string, PictureURI: string}>();
           for await (const row of result) {
             console.log(`${row.HistoriqueId}, ${row.PlantID}, ${row.PlantClassID}, ${row.Timestamp}, ${row.PictureURI}`);
           }
@@ -218,7 +285,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plant || "Camera"}
+            {name || "Camera"}
           </Text>
           <View className="w-[30]" />
         </View>
@@ -265,7 +332,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plant || "Camera"}
+            {name || "Camera"}
           </Text>
           <TouchableOpacity onPress={toggleFlash}>
             {flash === "off" ? (
