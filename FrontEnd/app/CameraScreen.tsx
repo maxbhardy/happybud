@@ -21,20 +21,30 @@ import {
 } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
-import { Asset, useAssets } from 'expo-asset';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ort from 'onnxruntime-react-native';
-import { Skia, useImage } from "@shopify/react-native-skia";
 import useDatabase from '../hooks/useDatabase'
 import * as picture from '../utils/picture'
 import * as onnx from '../utils/onnx'
+import * as mathlib from '../utils/mathlib'
 
 const modelEncoder = require('../assets/models/generalist_model_2025_03_27_encoder.ort')
 const plantDecoder = require('../assets/models/generalist_model_plants_2025_03_27_decoder.ort')
 const tomatoDecoder = require('../assets/models/generalist_model_tomato_2025_03_27_decoder.ort')
+
+const plantNames: { [key: string]: string } = {
+  null: 'Camera',
+  1: 'Maïs',
+  2: 'Tomate',
+  3: 'Patate',
+}
+
+const onnxModels: { [key: string]: string } = {
+  1: tomatoDecoder,
+  2: tomatoDecoder,
+  3: tomatoDecoder,
+}
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -43,8 +53,7 @@ export default function CmeraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const router = useRouter();
-  const { plant } = useLocalSearchParams();
-  const [model, setModel] = useState(null);
+  const { plant } = useLocalSearchParams<{plant: string}>();
   const [runningModel, setRunningModel] = useState(false);
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
@@ -108,9 +117,8 @@ export default function CmeraScreen() {
     // Check if model is loaded, and load it if not
     try {
       const encoder = await onnx.load_model(modelEncoder);
-      const decoder = await onnx.load_model(plantDecoder);
 
-      if (uri) {
+      if (uri && db) {
         // Load image into a tensor
         const inputTensor = await picture.image_to_tensor(uri);
 
@@ -123,10 +131,24 @@ export default function CmeraScreen() {
 
         // Encode image
         const encoded = await onnx.run_model(encoder, inputTensor);
+        
+        // Select plant
+        let currentPlant;
+        if (plant) {
+          currentPlant = plant;
+        }
+        else {
+          const plant_decoder = await onnx.load_model(plantDecoder);
+          const decoded = await onnx.run_model(plant_decoder, encoded);
+          currentPlant = 1 + mathlib.argmax(decoded.data);
+        }
 
-        // Decode image
-        const decoded = await onnx.run_model(decoder, encoded);
-        console.log(`${decoded.data}`)
+        // Diagnose plant
+        const disease_decoder = await onnx.load_model(onnxModels[currentPlant]);
+        const decoded = await onnx.run_model(disease_decoder, encoded);
+        const plantClass = 1 + mathlib.argmax(decoded.data);
+        console.log(`Plant ${plant} with class ${plantClass}`);
+        
       }
     }
     catch (e) {
@@ -152,10 +174,10 @@ export default function CmeraScreen() {
               />
             }
           </TouchableOpacity>
-          {/* <Text className="text-2xl font-bold text-center text-white">
-            Camera
-          </Text> */}
-          <View className="w-30" />
+          <Text className="text-2xl font-bold text-center text-[#ffffff]">
+            {plantNames[plant] || "Camera"}
+          </Text>
+          <View className="w-[30]" />
         </View>
         <Image
           source={{ uri }}
@@ -166,7 +188,7 @@ export default function CmeraScreen() {
         />
         <View className="flex-1 mx-8">
           <Text className="text-2 text-center text-[#ffffff] pt-10">
-            Souhaitez-vous soukmettre la photo à l'algorithme ou la reprendre ?
+            Souhaitez-vous soumettre la photo à l'algorithme ou la reprendre ?
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
@@ -200,7 +222,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plant || "Camera"}
+            {plantNames[plant] || "Camera"}
           </Text>
           <TouchableOpacity onPress={toggleFlash}>
             {flash === "off" ? (

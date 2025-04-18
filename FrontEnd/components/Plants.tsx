@@ -6,39 +6,19 @@ export default function Plants() {
   const vegetables = [
     {
       id: 1,
-      name: "Carrot",
+      name: "Maïs",
       image: require("../assets/images/plants/carrot.png"),
     }, // 🥕 Carrot
     {
       id: 2,
-      name: "Cabbage",
-      image: require("../assets/images/plants/cabbage.png"),
-    }, // 🥬 Cabbage
-    {
-      id: 3,
-      name: "Tomato",
+      name: "Tomate",
       image: require("../assets/images/plants/tomato.png"),
     }, // 🍅 Tomato
     {
-      id: 4,
-      name: "Radish",
+      id: 3,
+      name: "Patate",
       image: require("../assets/images/plants/radish.png"),
-    }, // 🌱 Radish
-    {
-      id: 5,
-      name: "Broccoli",
-      image: require("../assets/images/plants/broccoli.png"),
-    }, // 🥦 Broccoli
-    {
-      id: 6,
-      name: "Cucumber",
-      image: require("../assets/images/plants/cucumber.png"),
-    }, // 🥒 Cucumber
-    {
-      id: 7,
-      name: "Pumpkin",
-      image: require("../assets/images/plants/pumpkin.png"),
-    }, // 🎃 Pumpkin
+    }, // 🌱 Radish=
   ];
 
   return (
@@ -49,7 +29,7 @@ export default function Plants() {
           <TouchableOpacity
             key={veg.id}
             className="m-2 items-center justify-center bg-[#F8C6A4] rounded-full w-20 h-20"
-            onPress={() => router.push(`/CameraScreen?plant=${veg.name}`)}
+            onPress={() => router.push(`/CameraScreen?plant=${veg.id}`)}
           >
             <Image
               source={veg.image}
