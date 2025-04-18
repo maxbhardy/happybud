@@ -41,6 +41,9 @@ export async function run_model (model: any, inputTensor: any) {
 };
 
 export async function diagnose_picture (dir: string, image_uri: string, db: SQLite.SQLiteDatabase, plant: string|null) {
+  // Get timestamp for history ('now')
+  const date = new Date();
+  
   // Check if model is loaded, and load it if not
   const encoder = await load_model(dir + 'models/encoder.ort');
 
@@ -137,7 +140,7 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   console.log(`Plant ${plantName} with class ${plantClassCode}`);
 
   // Copy picture and thumbnail to local directory
-  const filename = picture.create_picture_filename();
+  const filename = `IMG_${date.toISOString()}.jpg`;
   const pictureURI = dir + 'pictures/' + filename;
   await FileSystem.copyAsync({ from: image_uri, to: pictureURI });
 
@@ -149,12 +152,12 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   let historiqueId;
   statement = await db.prepareAsync(
     `INSERT INTO Historique (PlantID, PlantClassID, Timestamp, PictureURI, ThumbnailURI)
-    VALUES (?, ?, DateTime('now'), ?, ?)
+    VALUES (?, ?, DateTime(?), ?, ?)
     RETURNING HistoriqueId`
   );
   try {
     const result = await statement.executeAsync<{HistoriqueId: number}>(
-      [plantID, plantClass, pictureURI, thumbnailURI]
+      [plantID, plantClass, date.toISOString(), pictureURI, thumbnailURI]
     );
     historiqueId = result.lastInsertRowId;
   }
