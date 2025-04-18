@@ -28,6 +28,9 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ort from 'onnxruntime-react-native';
 import { Skia, useImage } from "@shopify/react-native-skia";
+import useDatabase from '../hooks/useDatabase'
+import * as picture from '../utils/picture'
+import * as onnx from '../utils/onnx'
 
 const modelEncoder = require('../assets/models/generalist_model_2025_03_27_encoder.ort')
 const plantDecoder = require('../assets/models/generalist_model_plants_2025_03_27_decoder.ort')
@@ -45,6 +48,7 @@ export default function CmeraScreen() {
   const [runningModel, setRunningModel] = useState(false);
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
+  const db = useDatabase();
 
   if (!permission) {
     return null;
@@ -56,41 +60,25 @@ export default function CmeraScreen() {
 
   const takePicture = async () => {
     if (!ref.current) return;
-  
+    
+    // Take picture
     const photo: any = await ref.current.takePictureAsync();
-    console.log("Original photo:", photo?.uri); // Log original image
-  
-    if (photo?.uri) {
-      cropImage(photo.uri);
+
+    if (!photo?.uri) {
+      console.log('Failed to take picture');
+      return;
     }
-  };
-  
-  const cropImage = async (imageUri: string) => {
-    if (!ref.current) return;
-  
-    // Get the dimensions of the original image
-    const { width, height } = await ImageManipulator.manipulateAsync(imageUri, [], {
-      format: ImageManipulator.SaveFormat.JPEG,
-    });
-  
-    const squareSize = Math.min(width, height) * 0.8; // 80% of the smaller dimension
-    const crop = {
-      originX: (width - squareSize) / 2,
-      originY: (height - squareSize) / 2,
-      width: squareSize,
-      height: squareSize,
-    };
-  
-    const cropped = await ImageManipulator.manipulateAsync(
-      imageUri,
-      [{ crop }],
-      { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
-    );
-  
+
+    console.log("Original photo:", photo?.uri); // Log original image
+
+    // Crop image as square
+    const cropped = await picture.crop_square(photo.uri);
+
     if (cropped?.uri) {
       setUri(cropped.uri);
-    } else {
-      console.error("Image cropping failed", cropped);
+    }
+    else {
+      console.log('Image cropping failed')
     }
   };
   
@@ -114,93 +102,17 @@ export default function CmeraScreen() {
     }
   };
 
-  const loadAndResizePNG = async (pictureUri: string) => {
-    // Step 1: Apply transformations
-    const context = ImageManipulator.ImageManipulator.manipulate(pictureUri);
-    const resized = context.resize({ width: 224, height: 224 });
-    
-    // Step 2: Render the result
-    const transformed = await resized.renderAsync();
-    const result = await transformed.saveAsync({base64: true});
-
-    if (!result?.base64) {
-      console.log('Cannot read base64 values of the provided picture');
-      return null;
-    }
-
-    // Step 3: Convert to Skia image
-    const image = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(result.base64));
-
-    if (!image) {
-      console.log('Skia cannot read picture base64 encoding');
-      return null;
-    }
-
-    // Step 4: Reading pixel values
-    const pixelData = image.readPixels();
-
-    if (!pixelData) {
-      console.log('Skia cannot read the pixel data from the image');
-      return null;
-    }
-
-    // Step 4: Convert pixel values to float32 and keep alpha channel
-    const RGBAData = new Float32Array(224 * 224 * 4);
-    for (let i = 0; i < pixelData.length; i++) {
-      RGBAData[i] = pixelData[i];
-    }
-
-    // Step 5: Convert to tensor
-    const tensor = new ort.Tensor('float32', RGBAData, [224, 224, 4]);
-
-    return tensor
-  }
-
-  const loadModel = async (ortModel: any) => {
-    try {
-      const assets = await Asset.loadAsync([ortModel]);
-      const modelUri = assets[0]?.localUri;
-
-      let model = await ort.InferenceSession.create(modelUri);
-      console.log('Model is loaded');
-      return model;
-    }
-    catch (e) {
-      console.log('Cannot load the model', `${e}`);
-      throw e;
-    }
-  };
-
-  const runModel = async (model: any, inputTensor: any) => {
-    try {
-      // Prepare model input
-      const feeds = { x: inputTensor };
-
-      // Fetch model output
-      const fetches = await model.run(feeds);
-      const output = fetches[model.outputNames[0]];
-
-      console.log('Model inference has succeeded');
-      
-      return output
-    }
-    catch (e) {
-      console.log('Model inference has failed', `${e}`);
-      throw e;
-    }
-  };
-
   const diagnosePicture = async () => {
     setRunningModel(true);
 
     // Check if model is loaded, and load it if not
     try {
-      const encoder = await loadModel(modelEncoder);
-      const decoder = await loadModel(plantDecoder);
+      const encoder = await onnx.load_model(modelEncoder);
+      const decoder = await onnx.load_model(plantDecoder);
 
       if (uri) {
         // Load image into a tensor
-        const inputTensor = await loadAndResizePNG(uri);
+        const inputTensor = await picture.image_to_tensor(uri);
 
         if (!inputTensor) {
           console.log('Cannot convert picture to pixel data');
@@ -210,10 +122,10 @@ export default function CmeraScreen() {
         console.log('Image pixels are loaded into a tensor');
 
         // Encode image
-        const encoded = await runModel(encoder, inputTensor);
+        const encoded = await onnx.run_model(encoder, inputTensor);
 
         // Decode image
-        const decoded = await runModel(decoder, encoded);
+        const decoded = await onnx.run_model(decoder, encoded);
         console.log(`${decoded.data}`)
       }
     }
