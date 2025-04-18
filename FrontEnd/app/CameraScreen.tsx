@@ -99,174 +99,33 @@ export default function CmeraScreen() {
   };
 
   const diagnosePicture = async () => {
-    setRunningModel(true);
     //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db');
     //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-wal');
     //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-shm');
 
     // Check if model is loaded, and load it if not
     try {
-      const encoder = await onnx.load_model(dir + 'models/encoder.ort');
-
-      if (uri && db && dir) {
-        // Load image into a tensor
-        const inputTensor = await picture.image_to_tensor(uri);
-
-        if (!inputTensor) {
-          console.log('Cannot convert picture to pixel data');
-          return;
-        }
-
-        console.log('Image pixels are loaded into a tensor');
-
-        // Encode image
-        const encoded = await onnx.run_model(encoder, inputTensor);
-        
-        // Select plant
-        let plantID;
-        let plantName;
-        let plantModel;
-        let statement;
-
-        if (plant) {
-          plantID = Number(plant);
-          
-          statement = await db.prepareAsync(
-            'SELECT PlantName, PlantModelUri FROM Plants WHERE PlantID = ?'
-          );
-          try {
-            const result = await statement.executeAsync<{PlantName: string, PlantModelUri: string}>([plant]);
-            const row = await result.getFirstAsync();
-            plantName = row?.PlantName;
-            plantModel = dir + 'models/' + row?.PlantModelUri;
-          }
-          finally {
-            await statement.finalizeAsync();
-          }
-        }
-        else {
-          const plant_decoder = await onnx.load_model(dir + 'models/plant_decoder.ort');
-          const decoded = await onnx.run_model(plant_decoder, encoded);
-          console.log(`Plant results: ${decoded.data}`);
-          const plantIndex = mathlib.argmax(decoded.data);
-          
-          statement = await db.prepareAsync(
-            'SELECT PlantID, PlantName, PlantModelUri FROM Plants WHERE PlantOutputIndex = ?'
-          );
-          try {
-            const result = await statement.executeAsync<{PlantID: number, PlantName: string, PlantModelUri: string}>([plantIndex]);
-            const row = await result.getFirstAsync();
-            plantID = row?.PlantID;
-            plantName = row?.PlantName;
-            plantModel = dir + 'models/' + row?.PlantModelUri;
-          }
-          finally {
-            await statement.finalizeAsync();
-          }
-
-          if (!plantID) {
-            console.log('Cannot find the plant ID');
-            setRunningModel(false);
-            return;
-          }
-        }
-        console.log(plantID);
-
-        // Diagnose plant
-        let plantClass;
-        let plantClassCode;
-        const disease_decoder = await onnx.load_model(plantModel);
-        const decoded = await onnx.run_model(disease_decoder, encoded);
-        const plantClassIndex = mathlib.argmax(decoded.data);
-        console.log(decoded.data);
-
-        statement = await db.prepareAsync(
-          `SELECT PlantClassID, ClassCode FROM PlantClasses
-          WHERE PlantID = ? AND PlantClassOutputIndex = ?`
-        );
-        
-        try {
-          const result = await statement.executeAsync<{PlantClassID: number, ClassCode: string}>([plantID, plantClassIndex]);
-          const row = await result.getFirstAsync();
-          plantClass = row?.PlantClassID;
-          plantClassCode = row?.ClassCode;
-          console.log(plantClass, plantClassCode, plantID, plantClassIndex);
-        }
-        finally {
-          await statement.finalizeAsync();
-        }
-
-        if (!plantClass) {
-          console.log('Cannot find the plant class');
-          setRunningModel(false);
-          return;
-        }
-
-        console.log(`Plant ${plantName} with class ${plantClassCode}`);
-
-        // Copy picture and thumbnail to local directory
-        const filename = picture.create_picture_filename();
-        const pictureURI = dir + 'pictures/' + filename;
-        await FileSystem.copyAsync({ from: uri, to: pictureURI });
-
-        const thumbnail = await picture.create_thumbnail(uri);
-        const thumbnailURI = dir + 'thumbnails/' + filename;
-        await FileSystem.copyAsync({ from: thumbnail.uri, to: thumbnailURI });
-
-        // Insert into Historique
-        let historiqueId;
-        statement = await db.prepareAsync(
-          `INSERT INTO Historique (PlantID, PlantClassID, Timestamp, PictureURI, ThumbnailURI)
-          VALUES (?, ?, DateTime('now'), ?, ?)
-          RETURNING HistoriqueId`
-        );
-        try {
-          const result = await statement.executeAsync<{HistoriqueId: number}>(
-            [plantID, plantClass, pictureURI, thumbnailURI]
-          );
-          historiqueId = result.lastInsertRowId;
-        }
-        finally {
-          await statement.finalizeAsync();
-        }
-
-        // Insert into HistoriqueResult
-        statement = await db.prepareAsync(
-          `INSERT INTO HistoriqueResult (HistoriqueId, PlantClassID, result)
-          VALUES (?, ?, ?)`
-        );
-        try {
-          for (let i = 0; i < decoded.data.length; i++) {
-            const result = await statement.executeAsync(
-              [historiqueId, plantClass, decoded.data[i]]
-            );
-          }
-        }
-        finally {
-          await statement.finalizeAsync();
-        }
-
-        // Display Historique to the console
-        statement = await db.prepareAsync(
-          'SELECT HistoriqueId, PlantID, PlantClassID, Timestamp, PictureURI FROM Historique'
-        );
-        try {
-          const result = await statement.executeAsync<{HistoriqueId: number, PlantID: Number, PlantClassID: number, Timestamp: string, PictureURI: string}>();
-          for await (const row of result) {
-            console.log(`${row.HistoriqueId}, ${row.PlantID}, ${row.PlantClassID}, ${row.Timestamp}, ${row.PictureURI}`);
-          }
-        }
-        finally {
-          await statement.finalizeAsync();
-        }
+      setRunningModel(true);
+      if (!uri) {
+        console.log('Picture uri is undefined');
+      }
+      else if (!db) {
+        console.log('Database is undefined');
+      }
+      else if (!dir) {
+        console.log('Local working directory is undefined');
+      }
+      else {
+        await onnx.diagnose_picture(dir, uri, db, plant);
       }
     }
     catch (e) {
       console.log(e);
-      setRunningModel(false);
       throw e;
     }
-    setRunningModel(false);
+    finally {
+      setRunningModel(false);
+    }
     router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`);
   }
 
