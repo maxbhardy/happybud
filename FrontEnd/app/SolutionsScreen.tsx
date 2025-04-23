@@ -12,15 +12,15 @@ const SolutionsScreen = () => {
   const [rows, setRows] = useState<any[]>([])
   const router = useRouter();
 
-  useEffect(() => {
-   (async () => {
+  const readDatabase = async () => {
+    if (db && plantClassID) {
       try {
         const allRows = await db.getAllAsync(
           `SELECT * FROM PlantSolutions WHERE SolutionID IN (
-             SELECT SolutionID
-               FROM ClassSolutionRelationships
+              SELECT SolutionID
+                FROM ClassSolutionRelationships
               WHERE PlantClassID = ?
-           );`,
+            );`,
           [plantClassID]
         )
         setRows(allRows)
@@ -29,8 +29,13 @@ const SolutionsScreen = () => {
       } finally {
         
       }
-    })()
-  }, [db, plantClassID])
+    }
+  };
+
+  useEffect(() => {
+      readDatabase(); // Call the async function when the component mounts
+    }, [db, plantClassID]); // This effect runs when db changes
+
   if (rows.length === 0) {
     return (
       <View className="text-center">

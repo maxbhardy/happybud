@@ -16,11 +16,11 @@ import BottomNav from "@/components/BottomNav";
 import { Ionicons } from "@expo/vector-icons";
 import Solutions from "@/components/Solutions";
 
-import useDatabase from '../hooks/useDatabase'
+import useDatabase from '@/hooks/useDatabase'
 
 export default function IdentificationScreen () {
   const router = useRouter();
-  const { historiqueid } = useLocalSearchParams<{historiqueid: string}>();
+  const { historiqueID } = useLocalSearchParams<{historiqueID: string}>();
   const [isRead, setIsRead] = useState<boolean>(false);
   const [pictureURI, setPictureURI] = useState<string|null>(null);
   const [plantName, setPlantName] = useState<string|null>(null);
@@ -33,7 +33,7 @@ export default function IdentificationScreen () {
   const db = useDatabase();
 
   const readDatabase = async () => {
-    if (db && historiqueid) {
+    if (db && historiqueID) {
       const row = await db.getFirstAsync<{
         PlantName: string,
         PlantClassID: string,
@@ -49,7 +49,7 @@ export default function IdentificationScreen () {
         JOIN Plants USING (PlantID)
         JOIN PlantClasses USING (PlantClassID)
         WHERE HistoriqueID = ?`,
-        [historiqueid]
+        [historiqueID]
       );
       if (row?.PlantName) setPlantName(row.PlantName);
       if (row?.PlantClassID) setPlantClassID(row.PlantClassID);
@@ -62,7 +62,7 @@ export default function IdentificationScreen () {
 
   useEffect(() => {
     readDatabase(); // Call the async function when the component mounts
-  }, [db, historiqueid]); // This effect runs when db changes
+  }, [db, historiqueID]); // This effect runs when db changes
 
 
   return (
@@ -119,7 +119,7 @@ export default function IdentificationScreen () {
           <View className="flex-1 items-center justify-center mb-20 mt-4">
             <TouchableOpacity
               className="flex-row items-center justify-between bg-[#B67342] rounded-full px-6 py-3 w-60"
-              onPress={() => router.push(`/SolutionsScreen?plantclassid=${plantClassID}`)}
+              onPress={() => router.push(`/SolutionsScreen?plantClassID=${plantClassID}`)}
             >
               <Text className="text-white font-bold text-base">
                 Solutions proposées

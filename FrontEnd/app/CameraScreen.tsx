@@ -128,7 +128,7 @@ export default function CmeraScreen() {
       setRunningModel(false);
     }
     if (historiqueid) {
-      router.push(`/IdentificationScreen?historiqueid=${historiqueid}`);
+      router.push(`/IdentificationScreen?historiqueID=${historiqueid}`);
     }
   }
 
