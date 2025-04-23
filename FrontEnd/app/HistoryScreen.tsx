@@ -1,4 +1,4 @@
-import { View, Text, SafeAreaView, TouchableOpacity } from "react-native";
+import { View, Text, SafeAreaView, TouchableOpacity, ScrollView } from "react-native";
 import React from "react";
 import BottomNav from "@/components/BottomNav";
 import { StatusBar } from "expo-status-bar";
@@ -38,6 +38,7 @@ export default function HistoryScreen() {
       //      historiqueId.push(row?.HistotriqueId);
       //      timestamp.push(row?.Timestamp);
       //      plantClassName.push(plant_class_info?.ClassName);
+      console.log(historiques);
       setData(historiques);
     }
 
@@ -49,27 +50,29 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
-      <StatusBar style="auto" />
-      <View className="px-5 pt-5 my-8">
-        <Text className="text-2xl font-bold text-center text-[#1A3244]">
-          Historique
-        </Text>
-      </View>
-      <SearchBar />
-      <View className="my-10">
-        {data.map((item) => (
-          <HistoriqueComp
-            key={item.HistoriqueId}
-            title={item.plant_name}
-            date={item.Timestamp}
-            description={item.plant_class_name}
-            onPress={() => {
-              // Par exemple, navigation vers un écran de détail
-              // navigation.navigate('HistoriqueDetail', { id: item.id });
-            }}
-          />
-        ))}
-      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+        <StatusBar style="auto" />
+        <View className="px-5 pt-5 my-8">
+          <Text className="text-2xl font-bold text-center text-[#1A3244]">
+            Historique
+          </Text>
+        </View>
+        <SearchBar />
+        <View className="my-10">
+          {data.map((item) => (
+            <HistoriqueComp
+              key={item.HistoriqueId}
+              title={item.plant_name}
+              date={item.Timestamp}
+              description={item.plant_class_name}
+              onPress={() => {
+                // Par exemple, navigation vers un écran de détail
+                // navigation.navigate('HistoriqueDetail', { id: item.id });
+              }}
+            />
+          ))}
+        </View>
+      </ScrollView>
       <BottomNav />
     </SafeAreaView>
   );
