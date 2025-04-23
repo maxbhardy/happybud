@@ -40,7 +40,7 @@ export async function run_model (model: any, inputTensor: any) {
   }
 };
 
-export async function diagnose_picture (dir: string, image_uri: string, db: SQLite.SQLiteDatabase, plant: string|null) {
+export async function diagnose_picture (dir: string, image_uri: string, db: SQLite.SQLiteDatabase, plant: string|null): Promise<number|null> {
   // Get timestamp for history ('now')
   const date = new Date();
   
@@ -52,7 +52,7 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
 
   if (!inputTensor) {
     console.log('Cannot convert picture to pixel data');
-    return;
+    return null;
   }
 
   console.log('Image pixels are loaded into a tensor');
@@ -104,7 +104,7 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
 
     if (!plantID) {
       console.log('Cannot find the plant ID');
-      return;
+      return null;
     }
   }
 
@@ -134,7 +134,7 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
 
   if (!plantClass) {
     console.log('Cannot find the plant class');
-    return;
+    return null;
   }
 
   console.log(`Plant ${plantName} with class ${plantClassCode}`);
@@ -194,4 +194,7 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   finally {
     await statement.finalizeAsync();
   }
+
+  // Return historiqueid
+  return historiqueId;
 };
