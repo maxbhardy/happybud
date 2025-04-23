@@ -21,27 +21,13 @@ export default function HistoryScreen() {
 
 
   const getHistorique = async () => {
-    var historiques = await db.getAllAsync("SELECT * FROM Historique ORDER BY Timestamp DESC");
+    var historiques = await db.getAllAsync(`SELECT * FROM Historique 
+    INNER JOIN Plants ON PlantID = Historique.PlantID
+    INNER JOIN PlantClasses ON Historique.PlantClassID = PlantClasses.PlantClassID
+    ORDER BY Timestamp DESC`);
 
-    for (const row of historiques) {
-      console.log(row.HistoriqueId);
-
-      // const hist_res = db.getFirstAsync("SELECT * FROM HistoriqueResult WHERE HistoriqueId == ?",row.HistoriqueId);
-      const plant_name = db.getFirstAsync("SELECT PlantName FROM Plants WHERE PlantID = ?", row.PlantID);
-
-      const plant_class_name = db.getFirstAsync("SELECT ClassName FROM PlantClasses WHERE PlantClassID = ?", row.PlantClassID);
-
-      historiques.plant_name = plant_name;
-      historiques.plant_class_name = plant_class_name;
-      //      thumbnailURI.push(row?.ThumbnailURI);
-      //      plantName.push(plant_name);
-      //      historiqueId.push(row?.HistotriqueId);
-      //      timestamp.push(row?.Timestamp);
-      //      plantClassName.push(plant_class_info?.ClassName);
-      console.log(historiques);
-      setData(historiques);
-    }
-
+    setData(historiques);
+    console.log(historiques);
   };
 
   useEffect(() => {
@@ -62,9 +48,9 @@ export default function HistoryScreen() {
           {data.map((item) => (
             <HistoriqueComp
               key={item.HistoriqueId}
-              title={item.plant_name}
+              title={item.PlantName}
               date={item.Timestamp}
-              description={item.plant_class_name}
+              description={item.ClassName}
               onPress={() => {
                 // Par exemple, navigation vers un écran de détail
                 // navigation.navigate('HistoriqueDetail', { id: item.id });
