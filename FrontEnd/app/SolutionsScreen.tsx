@@ -1,27 +1,43 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Text, View, SafeAreaView } from "react-native";
 import BottomNav from "@/components/BottomNav";
 
 import SolutionsComp from "@/components/SolutionsComp";
-import { router, useRouter } from "expo-router";
+import { router, useLocalSearchParams, useRouter } from "expo-router";
+import useDatabase from "@/hooks/useDatabase";
+
 const SolutionsScreen = () => {
-  const data = [
-    {
-      id: 1,
-      SolutionName: "Tomate - Ravageur",
-      date: "Aujourd'hui",
-      description:
-        "Petite description mais celui-ci est grand pour montrer l'utilité de la ...",
-    },
-    {
-      id: 2,
-      SolutionName: "Tomate - Plant saint",
-      date: "Il y a 3 jours",
-      description:
-        "Description plus courte, tout va bien, aucune anomalie détectée.",
-    },
-  ];
-  const router = useRouter()
+  const { plantClassID } = useLocalSearchParams();
+  const db = useDatabase();
+  const [rows, setRows] = useState<any[]>([])
+  const router = useRouter();
+
+  useEffect(() => {
+   (async () => {
+      try {
+        const allRows = await db.getAllAsync(
+          `SELECT * FROM PlantSolutions WHERE SolutionID IN (
+             SELECT SolutionID
+               FROM ClassSolutionRelationships
+              WHERE PlantClassID = ?
+           );`,
+          [plantClassID]
+        )
+        setRows(allRows)
+      } catch (err) {
+        console.error('Query failed', err)
+      } finally {
+        
+      }
+    })()
+  }, [db, plantClassID])
+  if (rows.length === 0) {
+    return (
+      <View className="text-center">
+        <Text>Aucune solution pour cette classe de plante.</Text>
+      </View>
+    );
+  }
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
       <View className="px-5 pt-5 my-8">
@@ -31,21 +47,21 @@ const SolutionsScreen = () => {
       </View>
 
       <View className="my-10">
-      {data.map(item => (
+      {rows.map(item => (
         <SolutionsComp
-          key={item.id}
+          key={item.SolutionID}
           title={item.SolutionName}
-          description={item.description}
-          onPress={() => {
+          description={item.SolutionSummary}
+          onPress={() =>
             router.push({
               pathname: '/ProductScreen',
               params: {
-                id: String(item.id),
+                id: String(item.SolutionID),
                 name: item.SolutionName,
-                desc: item.description
-              }
+                desc: item.SolutionDescription,
+              },
             })
-          }}
+          }
         />
       ))}
     </View>
