@@ -37,33 +37,18 @@ const products = [
 
 const Solutions = () => {
   return (
-    <View className="bg-[#E5A985] p-6 mt-6 rounded-lg flex-1">
-      {/* Solutions Header */}
-      <Text className="text-xl font-bold text-white mb-3">Solutions</Text>
-
-      {/* Solution Block */}
-      <View className="bg-white p-4 rounded-lg shadow-md mb-4">
-        <Text className="text-lg font-semibold text-[#4A7C59]">
-          Vaporiser le plant avec du BTK
-        </Text>
-        <Text className="text-gray-600 text-sm">
-          Diluer le BTK à la concentration recommandée et vaporiser sur les
-          feuilles.
-        </Text>
-      </View>
+    <View className=" p-4 mt-3 rounded-lg flex-1">
+     
 
       {/* Product List Title */}
-      <Text className="text-lg font-bold text-white mt-4 mb-4">
+      <Text className="text-lg font-bold text-black mt-4 mb-4">
         Où trouver le produit ?
       </Text>
 
       {/* Scrollable Product List Using FlatList */}
       <FlatList
         data={products}
-        keyExtractor={(item) => item.id}
-        nestedScrollEnabled={true} // Allows scrolling inside another ScrollView
-        keyboardShouldPersistTaps="handled" // Improves tap response
-        contentContainerStyle={{ paddingBottom: 20 }}
+        
         renderItem={({ item }) => (
           <View className="bg-white p-4 rounded-lg shadow-md flex-row items-center mb-6">
             <View className="ml-4">
