@@ -104,6 +104,7 @@ export default function CmeraScreen() {
     //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-shm');
 
     // Check if model is loaded, and load it if not
+    let historiqueid;
     try {
       setRunningModel(true);
       if (!uri) {
@@ -116,7 +117,7 @@ export default function CmeraScreen() {
         console.log('Local working directory is undefined');
       }
       else {
-        await onnx.diagnose_picture(dir, uri, db, plant);
+        historiqueid = await onnx.diagnose_picture(dir, uri, db, plant);
       }
     }
     catch (e) {
@@ -126,7 +127,9 @@ export default function CmeraScreen() {
     finally {
       setRunningModel(false);
     }
-    router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`);
+    if (historiqueid) {
+      router.push(`/IdentificationScreen?historiqueid=${historiqueid}`);
+    }
   }
 
   const renderPicture = () => {

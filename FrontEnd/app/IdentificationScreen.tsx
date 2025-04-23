@@ -9,17 +9,41 @@ import {
   TouchableWithoutFeedback,
   PanResponder,
 } from "react-native";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import React from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import BottomNav from "@/components/BottomNav";
 import { Ionicons } from "@expo/vector-icons";
 import Solutions from "@/components/Solutions";
 
-const IdentificationScreen = () => {
+import useDatabase from '../hooks/useDatabase'
+
+export default function IdentificationScreen () {
   const router = useRouter();
-  const { image } = useLocalSearchParams();
+  const { historiqueid } = useLocalSearchParams<{historiqueid: string}>();
+  const [isRead, setIsRead] = useState<boolean>(false);
+  const [pictureURI, setPictureURI] = useState<string|null>(null);
+  const [plantName, setPlantName] = useState<string|null>(null);
+  const [plantClass, setPlantClass] = useState<string|null>(null);
+  const [classDescription, setClassDescription] = useState<string|null>(null);
+  const [classIdentification, setClassIdentification] = useState<string|null>(null);
   const [showSolutions, setShowSolutions] = useState(false);
   const slideAnim = useRef(new Animated.Value(1)).current; // Animation value
+  const db = useDatabase();
+
+  const readDatabase = async () => {
+    if (db && historiqueid) {
+      const row = await db.getFirstAsync<{PictureURI: string}>(
+        'SELECT PictureURI FROM Historique WHERE HistoriqueID = ?',
+        [historiqueid]
+      );
+      if (row?.PictureURI) setPictureURI(row.PictureURI);
+    }
+  };
+
+  useEffect(() => {
+    readDatabase(); // Call the async function when the component mounts
+  }, [db, historiqueid]); // This effect runs when db changes
 
   // Function to Show Solutions (Slide Up)
   const showSolutionsPanel = () => {
@@ -63,7 +87,11 @@ const IdentificationScreen = () => {
       <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
         {/* Image Section */}
         <View className=" p-4 rounded-lg shadow-md">
-          <Image source={{ uri: image }} className="w-full h-64 rounded-lg" />
+          {
+            pictureURI ?
+            <Image source={{ uri: pictureURI }} className="w-full h-64 rounded-lg" />:
+            <View/>
+          }
         </View>
         <View className=" p-4 mt-6 ">
           <Text className="text-2xl font-extrabold text-gray-800 mb-2">
@@ -146,5 +174,3 @@ const IdentificationScreen = () => {
     </SafeAreaView>
   );
 };
-
-export default IdentificationScreen;
