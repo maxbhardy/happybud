@@ -1,8 +1,8 @@
-import { View, Text, FlatList } from "react-native";
+import { View, Text, FlatList, Linking } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 
-const Solutions = ({ products = [] } : any) => {
+const Solutions = ({ products = [] }: any) => {
   return (
     <View className="p-4 mt-3 rounded-lg flex-1">
       {/* Title */}
@@ -43,6 +43,17 @@ const Solutions = ({ products = [] } : any) => {
               Prix: {item.Prix} $
             </Text>
             <Text className="text-gray-400 text-xs">Lieu: {item.Lieu}</Text>
+            {/* 5) Website link */}
+            {item.SiteWeb ? (
+              <Text
+                className="text-blue-500 underline"
+                onPress={() => {
+                  Linking.openURL(item.SiteWeb);
+                }}
+              >
+                Visiter le site
+              </Text>
+            ) : null}
           </View>
         )}
       />
