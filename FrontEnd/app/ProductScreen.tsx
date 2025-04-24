@@ -35,7 +35,7 @@ const ProductScreen = () => {
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 32 }}
-        className="flex-1"
+        className="flex-1 mb-10"
       >
         <View className="px-5 pt-5 my-8">
           <Text className="text-2xl font-bold text-center text-[#1A3244]">
