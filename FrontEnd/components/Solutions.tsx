@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Linking } from "react-native";
+import { View, Text, FlatList, Linking, TouchableOpacity } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -14,7 +14,10 @@ const Solutions = ({ products = [] }: any) => {
         data={products}
         keyExtractor={(item) => item.ProduitId.toString()}
         renderItem={({ item }) => (
-          <View className="bg-white p-4 rounded-lg shadow-md mb-6">
+          <TouchableOpacity
+            onPress={() => {Linking.openURL(item.SiteWeb);}}
+            className="bg-white p-4 rounded-lg shadow-md mb-6"
+          >
             {/* 1) Product name */}
             <Text className="text-xl font-bold text-gray-900 mb-1">
               {item.ProductName}
@@ -43,18 +46,7 @@ const Solutions = ({ products = [] }: any) => {
               Prix: {item.Prix} $
             </Text>
             <Text className="text-gray-400 text-xs">Lieu: {item.Lieu}</Text>
-            {/* 5) Website link */}
-            {item.SiteWeb ? (
-              <Text
-                className="text-blue-500 underline"
-                onPress={() => {
-                  Linking.openURL(item.SiteWeb);
-                }}
-              >
-                Visiter le site
-              </Text>
-            ) : null}
-          </View>
+          </TouchableOpacity>
         )}
       />
     </View>
