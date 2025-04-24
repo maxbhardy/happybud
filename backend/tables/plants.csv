@@ -1,4 +1,4 @@
 PlantID,PlantOutputIndex,PlantName,PlantLogoUri,PlantModelUri
 1,0,Tomate,,tomato_decoder.ort
-2,1,Maïs,,tomato_decoder.ort
-3,2,Patate,,tomato_decoder.ort
+2,1,Maïs,,corn_decoder.ort
+3,2,Patate,,potato_decoder.ort
