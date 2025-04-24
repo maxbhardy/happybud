@@ -22,21 +22,24 @@ import { openDatabase } from '@/utils/database'
 export default function IdentificationScreen () {
   const router = useRouter();
   const { historiqueID } = useLocalSearchParams<{historiqueID: string}>();
-  const [isRead, setIsRead] = useState<boolean>(false);
   const [pictureURI, setPictureURI] = useState<string|null>(null);
   const [plantName, setPlantName] = useState<string|null>(null);
   const [className, setClassName] = useState<string|null>(null);
   const [plantClassID, setPlantClassID] = useState<string|null>(null);
   const [classDescription, setClassDescription] = useState<string|null>(null);
   const [classIdentification, setClassIdentification] = useState<string|null>(null);
-  const [showSolutions, setShowSolutions] = useState(false);
-  const slideAnim = useRef(new Animated.Value(1)).current; // Animation value
-  //const db = useDatabase();
 
   const readDatabase = async () => {
     if (historiqueID) {
       const db = await openDatabase();
-      const row = await db.getFirstAsync(
+      const row = await db.getFirstAsync<{
+        PlantName: string,
+        PlantClassID: string,
+        ClassName: string,
+        ClassDescription: string,
+        ClassIdentification: string,
+        PictureURI: string
+      }>(
         `SELECT
           PlantName, PlantClassID, ClassName, ClassDescription,
           ClassIdentification, PictureURI

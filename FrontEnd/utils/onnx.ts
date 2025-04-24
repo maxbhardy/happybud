@@ -64,23 +64,19 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   let plantID;
   let plantName;
   let plantModel;
-  let statement;
+  let row;
 
   if (plant) {
     plantID = Number(plant);
     
-    statement = await db.prepareAsync(
-      'SELECT PlantName, PlantModelUri FROM Plants WHERE PlantID = ?'
+    // Get plant name and model uri
+    row = await db.getFirstAsync<{PlantName: string, PlantModelUri: string}>(
+      'SELECT PlantName, PlantModelUri FROM Plants WHERE PlantID = ?',
+      [plant]
     );
-    try {
-      const result = await statement.executeAsync<{PlantName: string, PlantModelUri: string}>([plant]);
-      const row = await result.getFirstAsync();
-      plantName = row?.PlantName;
-      plantModel = dir + 'models/' + row?.PlantModelUri;
-    }
-    finally {
-      await statement.finalizeAsync();
-    }
+
+    plantName = row?.PlantName;
+    plantModel = dir + 'models/' + row?.PlantModelUri;
   }
   else {
     const plant_decoder = await load_model(dir + 'models/plant_decoder.ort');
@@ -88,19 +84,17 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
     console.log(`Plant results: ${decoded.data}`);
     const plantIndex = mathlib.argmax(decoded.data);
     
-    statement = await db.prepareAsync(
-      'SELECT PlantID, PlantName, PlantModelUri FROM Plants WHERE PlantOutputIndex = ?'
+    row = await db.getFirstAsync<{
+      PlantID: number,
+      PlantName: string,
+      PlantModelUri: string
+    }>(
+      'SELECT PlantID, PlantName, PlantModelUri FROM Plants WHERE PlantOutputIndex = ?',
+      [plantIndex]
     );
-    try {
-      const result = await statement.executeAsync<{PlantID: number, PlantName: string, PlantModelUri: string}>([plantIndex]);
-      const row = await result.getFirstAsync();
-      plantID = row?.PlantID;
-      plantName = row?.PlantName;
-      plantModel = dir + 'models/' + row?.PlantModelUri;
-    }
-    finally {
-      await statement.finalizeAsync();
-    }
+    plantID = row?.PlantID;
+    plantName = row?.PlantName;
+    plantModel = dir + 'models/' + row?.PlantModelUri;
 
     if (!plantID) {
       console.log('Cannot find the plant ID');
@@ -111,33 +105,26 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   // Diagnose plant
   let plantClass;
   let plantClassCode;
+
   const disease_decoder = await load_model(plantModel);
   const decoded = await run_model(disease_decoder, encoded);
   const plantClassIndex = mathlib.argmax(decoded.data);
   console.log(decoded.data);
 
-  statement = await db.prepareAsync(
+  row = await db.getFirstAsync<{PlantClassID: number, ClassCode: string}>(
     `SELECT PlantClassID, ClassCode FROM PlantClasses
-    WHERE PlantID = ? AND PlantClassOutputIndex = ?`
+    WHERE PlantID = ? AND PlantClassOutputIndex = ?`,
+    [plantID, plantClassIndex]
   );
-  
-  try {
-    const result = await statement.executeAsync<{PlantClassID: number, ClassCode: string}>([plantID, plantClassIndex]);
-    const row = await result.getFirstAsync();
-    plantClass = row?.PlantClassID;
-    plantClassCode = row?.ClassCode;
-    console.log(plantClass, plantClassCode, plantID, plantClassIndex);
-  }
-  finally {
-    await statement.finalizeAsync();
-  }
+  plantClass = row?.PlantClassID;
+  plantClassCode = row?.ClassCode;
 
   if (!plantClass) {
     console.log('Cannot find the plant class');
     return null;
   }
 
-  console.log(`Plant ${plantName} with class ${plantClassCode}`);
+  console.log(`Plant ${plantName} (${plantID}) with class ${plantClassCode} (${plantClass})`);
 
   // Copy picture and thumbnail to local directory
   const filename = `IMG_${date.toISOString()}.jpg`;
@@ -150,30 +137,28 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
 
   // Insert into Historique
   let historiqueId;
-  statement = await db.prepareAsync(
+  row = await db.getFirstAsync<{HistoriqueId: number}>(
     `INSERT INTO Historique (PlantID, PlantClassID, Timestamp, PictureURI, ThumbnailURI)
     VALUES (?, ?, DateTime(?), ?, ?)
-    RETURNING HistoriqueId`
+    RETURNING HistoriqueId`,
+    [plantID, plantClass, date.toISOString(), pictureURI, thumbnailURI]
   );
-  try {
-    const result = await statement.executeAsync<{HistoriqueId: number}>(
-      [plantID, plantClass, date.toISOString(), pictureURI, thumbnailURI]
-    );
-    historiqueId = result.lastInsertRowId;
-  }
-  finally {
-    await statement.finalizeAsync();
+  historiqueId = row?.HistoriqueId;
+
+  if (!historiqueId) {
+    console.log('Cannot fetch HistoriqueId');
+    return null;
   }
 
   // Insert into HistoriqueResult
-  statement = await db.prepareAsync(
+  let statement = await db.prepareAsync(
     `INSERT INTO HistoriqueResult (HistoriqueId, PlantClassID, result)
-    VALUES (?, ?, ?)`
+    VALUES (?1, (SELECT PlantClassID FROM PlantClasses WHERE PlantID = ?2 and PlantClassOutputIndex = ?3), ?4)`
   );
   try {
     for (let i = 0; i < decoded.data.length; i++) {
       const result = await statement.executeAsync(
-        [historiqueId, plantClass, decoded.data[i]]
+        [historiqueId, plantID, i, decoded.data[i]]
       );
     }
   }
@@ -182,17 +167,18 @@ export async function diagnose_picture (dir: string, image_uri: string, db: SQLi
   }
 
   // Display Historique to the console
-  statement = await db.prepareAsync(
+  const result = await db.getAllAsync<{
+    HistoriqueId: number,
+    PlantID: number,
+    PlantClassID: number,
+    Timestamp: string,
+    PictureURI: string
+  }>(
     'SELECT HistoriqueId, PlantID, PlantClassID, Timestamp, PictureURI FROM Historique'
   );
-  try {
-    const result = await statement.executeAsync<{HistoriqueId: number, PlantID: Number, PlantClassID: number, Timestamp: string, PictureURI: string}>();
-    for await (const row of result) {
-      console.log(`${row.HistoriqueId}, ${row.PlantID}, ${row.PlantClassID}, ${row.Timestamp}, ${row.PictureURI}`);
-    }
-  }
-  finally {
-    await statement.finalizeAsync();
+
+  for (const row of result) {
+    console.log(`${row.HistoriqueId}, ${row.PlantID}, ${row.PlantClassID}, ${row.Timestamp}, ${row.PictureURI}`);
   }
 
   // Return historiqueid
