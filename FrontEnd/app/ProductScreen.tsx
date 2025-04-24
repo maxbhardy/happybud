@@ -15,7 +15,7 @@ const ProductScreen = () => {
           const allRows = await db.getAllAsync(
             `SELECT * FROM Produits WHERE ProduitID IN (
                 SELECT ProduitID
-                  FROM PlantSolutionRelationship
+                  FROM PlantSolutionRelationships
                 WHERE SolutionID = ?
               );`,
             [id]

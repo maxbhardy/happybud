@@ -7,7 +7,9 @@ const assetFiles: { [key: string]: string} = {
   'database/database.db': require('../assets/database/database.db'),
   'models/encoder.ort': require('../assets/models/encoder.ort'),
   'models/plant_decoder.ort': require('../assets/models/plant_decoder.ort'),
-  'models/tomato_decoder.ort': require('../assets/models/tomato_decoder.ort')
+  'models/tomato_decoder.ort': require('../assets/models/tomato_decoder.ort'),
+  'models/corn_decoder.ort': require('../assets/models/corn_decoder.ort'),
+  'models/potato_decoder.ort': require('../assets/models/corn_decoder.ort'),
 };
 
 export async function setupLocalFiles (): Promise<string|null> {
