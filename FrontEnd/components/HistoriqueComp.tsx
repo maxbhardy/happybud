@@ -5,6 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 
 const favicon = require("../assets/images/favicon.png");
 export default function HistoriqueComp({
+  historiqueid,
   title,
   date,
   description,
@@ -52,11 +53,11 @@ export default function HistoriqueComp({
         <Ionicons name="arrow-forward" size={24} color="#4A7C59" />
         <TouchableOpacity
           onPress={() => {
-            onDelete && onDelete();
+            onDelete(historiqueid) ;
           }}
           className="ml-4"
         >
-          <Ionicons name="trash" size={20} color="red" />
+          <Ionicons name="trash" size={30} color="red" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

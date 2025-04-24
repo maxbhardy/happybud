@@ -37,6 +37,36 @@ export default function HistoryScreen() {
     await db.closeAsync();
   };
 
+  const deleteHistorique = async (historiqueId: number) => {
+    // Open database
+    const db = await openDatabase();
+
+    // Delete Historique results
+    await db.runAsync(
+      `DELETE FROM HistoriqueResult WHERE HistoriqueId = ?`, [historiqueId]
+    );
+
+    // Delete Historique
+    await db.runAsync(
+      `DELETE FROM Historique WHERE HistoriqueId = ?`, [historiqueId]
+    );
+
+    // Refetch historique
+    const historiques = await db.getAllAsync(
+      `SELECT HistoriqueId, PlantName, ClassName, Timestamp, ThumbnailURI
+      FROM Historique 
+      JOIN Plants USING (PlantID)
+      JOIN PlantClasses USING (PlantClassID)
+      ORDER BY Timestamp DESC`
+    );
+
+    setData(historiques);
+    console.log(historiques);
+
+    // Close database
+    await db.closeAsync();
+  }
+
   useEffect(() => {
     getHistorique(); // Call the async function when the component mounts
   }, []);
@@ -55,6 +85,7 @@ export default function HistoryScreen() {
           {data.map((item) => (
             <HistoriqueComp
               key={item.HistoriqueId}
+              historiqueid={item.HistoriqueId}
               title={item.PlantName}
               date={item.Timestamp}
               description={item.ClassName}
@@ -64,6 +95,7 @@ export default function HistoryScreen() {
                 // Par exemple, navigation vers un écran de détail
                 // navigation.navigate('HistoriqueDetail', { id: item.id });
               }}
+              onDelete={deleteHistorique}
             />
           ))}
         </View>
