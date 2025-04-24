@@ -2,66 +2,47 @@ import { View, Text, FlatList } from "react-native";
 import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 
-const products = [
-  {
-    id: "1",
-    name: "L’entrepôt Rona",
-    price: "14,99 $",
-    address: "465 Bd du Royaume O, Chicoutimi",
-  },
-  {
-    id: "2",
-    name: "Pépinière Boréalis",
-    price: "8,99 $",
-    address: "2568 Rue Mathias, Jonquière",
-  },
-  {
-    id: "3",
-    name: "Canadian Tire",
-    price: "12,99 $",
-    address: "1257 Bd Talbot, Chicoutimi",
-  },
-  {
-    id: "4",
-    name: "Les Serres St-Do",
-    price: "33,99 $",
-    address: "3187 Rue St-Dominique, Chicoutimi",
-  },
-  {
-    id: "5",
-    name: "Walmart",
-    price: "9,99 $",
-    address: "1000 Bd du Royaume, Chicoutimi",
-  },
-];
-
-const Solutions = () => {
+const Solutions = ({ products = [] } : any) => {
   return (
-    <View className=" p-4 mt-3 rounded-lg flex-1">
-     
-
-      {/* Product List Title */}
+    <View className="p-4 mt-3 rounded-lg flex-1">
+      {/* Title */}
       <Text className="text-lg font-bold text-black mt-4 mb-4">
         Où trouver le produit ?
       </Text>
 
-      {/* Scrollable Product List Using FlatList */}
       <FlatList
         data={products}
-        
+        keyExtractor={(item) => item.ProduitId.toString()}
         renderItem={({ item }) => (
-          <View className="bg-white p-4 rounded-lg shadow-md flex-row items-center mb-6">
-            <View className="ml-4">
-              <Text className="text-[#4A7C59] font-semibold">{item.name}</Text>
-              <Text className="text-gray-600 text-sm">{item.price}</Text>
-              <Text className="text-gray-400 text-xs">{item.address}</Text>
+          <View className="bg-white p-4 rounded-lg shadow-md mb-6">
+            {/* 1) Product name */}
+            <Text className="text-xl font-bold text-gray-900 mb-1">
+              {item.ProductName}
+            </Text>
+
+            {/* 2) Description */}
+            <Text className="text-base text-gray-700 mb-3">
+              {item.Description}
+            </Text>
+
+            {/* 3) Supplier / arrow row */}
+            <View className="flex-row items-center mb-2">
+              <Text className="text-[#4A7C59] font-semibold">
+                {item.Fournisseur}
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={16}
+                color="#4A7C59"
+                className="ml-auto"
+              />
             </View>
-            <Ionicons
-              name="arrow-forward"
-              size={16}
-              color="#4A7C59"
-              className="ml-auto"
-            />
+
+            {/* 4) Price and location */}
+            <Text className="text-gray-600 text-sm mb-1">
+              Prix: {item.Prix} $
+            </Text>
+            <Text className="text-gray-400 text-xs">Lieu: {item.Lieu}</Text>
           </View>
         )}
       />
