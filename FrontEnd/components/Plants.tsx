@@ -7,7 +7,7 @@ export default function Plants() {
     {
       id: 2,
       name: "Maïs",
-      image: require("../assets/images/plants/carrot.png"),
+      image: require("../assets/images/plants/corn.png"),
     }, // 🥕 Carrot
     {
       id: 1,
@@ -17,7 +17,7 @@ export default function Plants() {
     {
       id: 3,
       name: "Patate",
-      image: require("../assets/images/plants/radish.png"),
+      image: require("../assets/images/plants/potato.png"),
     }, // 🌱 Radish=
   ];
 
@@ -29,7 +29,9 @@ export default function Plants() {
           <TouchableOpacity
             key={veg.id}
             className="m-2 items-center justify-center bg-[#F8C6A4] rounded-full w-20 h-20"
-            onPress={() => router.push(`/CameraScreen?plant=${veg.id}&name=${veg.name}`)}
+            onPress={() =>
+              router.push(`/CameraScreen?plant=${veg.id}&name=${veg.name}`)
+            }
           >
             <Image
               source={veg.image}
