@@ -26,7 +26,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
 
-import useDatabase from '../hooks/useDatabase'
+import { openDatabase } from '../utils/database'
 import * as picture from '../utils/picture'
 import * as onnx from '../utils/onnx'
 import * as mathlib from '../utils/mathlib'
@@ -44,7 +44,6 @@ export default function CmeraScreen() {
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
   const dir = useLocalFiles();
-  const db = useDatabase();
 
   if (!permission) {
     return null;
@@ -99,12 +98,11 @@ export default function CmeraScreen() {
   };
 
   const diagnosePicture = async () => {
-    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db');
-    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-wal');
-    //await FileSystem.deleteAsync(FileSystem.documentDirectory + 'database/database.db-shm');
-
-    // Check if model is loaded, and load it if not
+    const db = await openDatabase();
+    //await db.execAsync('DELETE FROM Historique');
+    //await db.execAsync('DELETE FROM HistoriqueResults');
     let historiqueid;
+
     try {
       setRunningModel(true);
       if (!uri) {
@@ -127,6 +125,8 @@ export default function CmeraScreen() {
     finally {
       setRunningModel(false);
     }
+    await db.closeAsync();
+
     if (historiqueid) {
       router.push(`/IdentificationScreen?historiqueID=${historiqueid}`);
     }

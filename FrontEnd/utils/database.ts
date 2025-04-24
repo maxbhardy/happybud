@@ -5,7 +5,7 @@ export async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
   const dbFile = FileSystem.documentDirectory + 'database/database.db';
 
   try {
-    const db = await SQLite.openDatabaseAsync(dbFile);
+    const db = await SQLite.openDatabaseAsync(dbFile, { useNewConnection: true });
     console.log('Database has been opened with success!')
     return db;
   } catch (error) {

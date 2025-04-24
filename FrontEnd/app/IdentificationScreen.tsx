@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Solutions from "@/components/Solutions";
 
 import useDatabase from '@/hooks/useDatabase'
+import { openDatabase } from '@/utils/database'
 
 export default function IdentificationScreen () {
   const router = useRouter();
@@ -30,18 +31,12 @@ export default function IdentificationScreen () {
   const [classIdentification, setClassIdentification] = useState<string|null>(null);
   const [showSolutions, setShowSolutions] = useState(false);
   const slideAnim = useRef(new Animated.Value(1)).current; // Animation value
-  const db = useDatabase();
+  //const db = useDatabase();
 
   const readDatabase = async () => {
-    if (db && historiqueID) {
-      const row = await db.getFirstAsync<{
-        PlantName: string,
-        PlantClassID: string,
-        ClassName: string,
-        ClassDescription: string,
-        ClassIdentification: string,
-        PictureURI: string,
-      }>(
+    if (historiqueID) {
+      const db = await openDatabase();
+      const row = await db.getFirstAsync(
         `SELECT
           PlantName, PlantClassID, ClassName, ClassDescription,
           ClassIdentification, PictureURI
@@ -57,12 +52,15 @@ export default function IdentificationScreen () {
       if (row?.ClassDescription) setClassDescription(row.ClassDescription);
       if (row?.ClassIdentification) setClassIdentification(row.ClassIdentification);
       if (row?.PictureURI) setPictureURI(row.PictureURI);
+
+      await db.closeAsync();
     }
   };
 
   useEffect(() => {
+    console.log(historiqueID);
     readDatabase(); // Call the async function when the component mounts
-  }, [db, historiqueID]); // This effect runs when db changes
+  }, [historiqueID]); // This effect runs when db changes
 
 
   return (

@@ -4,9 +4,9 @@ import BottomNav from "@/components/BottomNav";
 import { StatusBar } from "expo-status-bar";
 import HistoriqueComp from "@/components/HistoriqueComp";
 import SearchBar from "@/components/SearchBar";
-import { getHistoriqueResults } from "@/utils/database";
+import { openDatabase } from "@/utils/database";
 import { useState, useEffect } from "react";
-import useDatabase from "@/hooks/useDatabase";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 
 export default function HistoryScreen() {
@@ -16,23 +16,30 @@ export default function HistoryScreen() {
   const [timestamp, setTimestamp] = useState<Array<string | null>>([]);
   const [plantClassName, setPlantClassName] = useState<Array<string | null>>([]);
   const [data, setData] = useState<Array<any>>([]);
-  const db = useDatabase();
-
-
+  const router = useRouter();
 
   const getHistorique = async () => {
-    var historiques = await db.getAllAsync(`SELECT * FROM Historique 
-    INNER JOIN Plants ON PlantID = Historique.PlantID
-    INNER JOIN PlantClasses ON Historique.PlantClassID = PlantClasses.PlantClassID
-    ORDER BY Timestamp DESC`);
+    const db = await openDatabase();
+
+    //await db.execAsync('DELETE FROM Historique');
+    //await db.execAsync('DELETE FROM HistoriqueResults');
+
+    const historiques = await db.getAllAsync(
+      `SELECT HistoriqueId, PlantName, ClassName, Timestamp, ThumbnailURI
+      FROM Historique 
+      JOIN Plants USING (PlantID)
+      JOIN PlantClasses USING (PlantClassID)
+      ORDER BY Timestamp DESC`
+    );
 
     setData(historiques);
     console.log(historiques);
+    await db.closeAsync();
   };
 
   useEffect(() => {
     getHistorique(); // Call the async function when the component mounts
-  }, [db]);
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
@@ -51,7 +58,9 @@ export default function HistoryScreen() {
               title={item.PlantName}
               date={item.Timestamp}
               description={item.ClassName}
+              image={item.ThumbnailURI}
               onPress={() => {
+                router.push(`/IdentificationScreen?historiqueID=${item.HistoriqueId}`)
                 // Par exemple, navigation vers un écran de détail
                 // navigation.navigate('HistoriqueDetail', { id: item.id });
               }}
