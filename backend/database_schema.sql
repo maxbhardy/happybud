@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS Produits (
     Description Text,
     Fournisseur TEXT,
     Lieu TEXT,
-    Prix REAL
+    Prix REAL,
+    SiteWeb TEXT
 );
 
 CREATE TABLE IF NOT EXISTS PlantSolutionRelationships (
