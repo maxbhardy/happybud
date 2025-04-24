@@ -10,8 +10,8 @@ export default function HistoriqueComp({
   description,
   image,
   onPress,
+  onDelete,
 }: any) {
-
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -20,11 +20,19 @@ export default function HistoriqueComp({
       {/* Bloc de texte */}
       <View className="flex-1 flex-row items-center pr-3">
         <View>
-          {
-            image ?
-            <Image source={{uri: image}} className="w-12 h-12 rounded-md mr-3" resizeMode="contain"/>:
-            <Image source={favicon} className="w-12 h-12 rounded-md mr-3" resizeMode="contain"/>
-          }
+          {image ? (
+            <Image
+              source={{ uri: image }}
+              className="w-12 h-12 rounded-md mr-3"
+              resizeMode="contain"
+            />
+          ) : (
+            <Image
+              source={favicon}
+              className="w-12 h-12 rounded-md mr-3"
+              resizeMode="contain"
+            />
+          )}
         </View>
         <View className="pr-6">
           <Text className="text-[#4A7C59] font-bold text-base">{title}</Text>
@@ -40,7 +48,17 @@ export default function HistoriqueComp({
       </View>
 
       {/* Flèche à droite */}
-      <Ionicons name="arrow-forward" size={24} color="#4A7C59" />
+      <View className="flex-row items-center">
+        <Ionicons name="arrow-forward" size={24} color="#4A7C59" />
+        <TouchableOpacity
+          onPress={() => {
+            onDelete && onDelete();
+          }}
+          className="ml-4"
+        >
+          <Ionicons name="trash" size={20} color="red" />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 }
