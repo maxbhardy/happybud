@@ -4,15 +4,16 @@ import BottomNav from "@/components/BottomNav";
 
 import SolutionsComp from "@/components/SolutionsComp";
 import { router, useLocalSearchParams, useRouter } from "expo-router";
-import useDatabase from "@/hooks/useDatabase";
+import { openDatabase } from "@/utils/database";
 
 const SolutionsScreen = () => {
-  const { plantClassID } = useLocalSearchParams();
-  const db = useDatabase();
+  const { plantClassID } = useLocalSearchParams<{plantClassID: string}>();
   const [rows, setRows] = useState<any[]>([])
   const router = useRouter();
 
   const readDatabase = async () => {
+    const db = await openDatabase();
+
     if (db && plantClassID) {
       try {
         const allRows = await db.getAllAsync(
@@ -27,14 +28,14 @@ const SolutionsScreen = () => {
       } catch (err) {
         console.error('Query failed', err)
       } finally {
-        
+        await db.closeAsync();
       }
     }
   };
 
   useEffect(() => {
       readDatabase(); // Call the async function when the component mounts
-    }, [db, plantClassID]); // This effect runs when db changes
+    }, [plantClassID]); // This effect runs when db changes
 
   if (rows.length === 0) {
     return (

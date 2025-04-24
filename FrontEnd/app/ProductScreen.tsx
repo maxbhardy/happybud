@@ -2,14 +2,16 @@ import React, { useEffect, useState } from "react";
 import { SafeAreaView, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Solutions from "@/components/Solutions";
-import useDatabase from "@/hooks/useDatabase";
+import { openDatabase } from "@/utils/database";
 import BottomNav from "@/components/BottomNav";
+
 const ProductScreen = () => {
-  const { id, name, desc } = useLocalSearchParams();
-  const db = useDatabase();
+  const { id, name, desc } = useLocalSearchParams<{id: string, name:string, desc:string}>();
   const [rows, setRows] = useState<any[]>([]);
 
   const readDatabase = async () => {
+    const db = await openDatabase();
+
     if (db && id) {
       try {
         const allRows = await db.getAllAsync(
@@ -24,13 +26,14 @@ const ProductScreen = () => {
       } catch (err) {
         console.error("Query failed", err);
       } finally {
+        await db.closeAsync();
       }
     }
   };
 
   useEffect(() => {
     readDatabase(); // Call the async function when the component mounts
-  }, [db, id]); // This effect runs when db changes
+  }, [id]); // This effect runs when db changes
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">
       <ScrollView
