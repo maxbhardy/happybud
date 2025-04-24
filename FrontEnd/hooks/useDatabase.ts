@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import * as SQLite from 'expo-sqlite';
 import { openDatabase } from '../utils/database';
 
-function useDatabase(): SQLite.SQLiteDatabase | undefined {
+function useDatabase(): SQLite.SQLiteDatabase | any {      /* undefined */
   const [db, setDb] = useState<SQLite.SQLiteDatabase>();
 
   useEffect(() => {

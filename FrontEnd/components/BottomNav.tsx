@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity } from "react-native";
+import React from "react";
 import { useRouter, usePathname } from "expo-router";
 
 export default function FooterNav() {

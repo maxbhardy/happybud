@@ -1,4 +1,5 @@
 import React from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,9 +12,16 @@ import BottomNav from "@/components/BottomNav";
 import SearchBar from "@/components/SearchBar";
 import Plants from "@/components/Plants";
 import { Ionicons } from "@expo/vector-icons";
+import { replaceLocalFiles, setupLocalFiles } from '@/utils/localfiles'
 
 export default function HomeScreen() {
   // Define vegetable items
+
+  useEffect(() => {
+    //replaceLocalFiles(); // To replace database and models
+    setupLocalFiles(); // To add only missing files
+  }, []); // Runs once when loading home screen
+
 
   return (
     <SafeAreaView className="flex-1 bg-[#DFD8D1]">

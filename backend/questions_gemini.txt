@@ -1,0 +1,27 @@
+Bonjour, pouvez-vous faire le même exercice, mais pour les problèmes suivants pour les plants de maïs: 
+ - Plant en santé 
+ - Maladie des taches grise du maïs (grey leaf spot)
+ - Brûlure septentrionale du maïs (northern leaf blight)
+ - Virus de la striure du maïs (streak virus)
+ - Rouille commune du maïs (common rust)
+ 
+
+ Je rappelle les 3 CSV à produire : 
+ classes.csv : 
+ - ClassID: numéro séquentiel du problème en question (commencer à 13)
+ - ClassName: nom de la maladie ou du problème en question (en français)   
+ - ClassDescription: Court paragraphe de description du problème (1 à 4 phrases expliquant la cause du problème, son origine, etc.)  
+ - ClassIdentification: Court paragraphe sur comment identifier le problème (1 à 4 phrases sans bullet points), expliquant les différents symptômes à observer pour bien identifier la maladie  
+
+
+ solutions.csv (si vous utilisez la même solution qu'une mentionnée pour les plants de tomate, mettre le même numéro. S'il s'agit d'une nouvelle solution non utilisée pour les plants de tomate ou de patate, commencer le SolutionID à 18) 
+ - SolutionID: numéro séquentiel de la solution   
+ - SolutionName: Nom de la solution   
+ - SolutionSummary: Description brève de la solution (1 à 2 phrases). Faire attention à ne pas indiquer le nom de la plante dans la description.  
+ - SolutionDescription : Description détaillée de la solution, avec 1 à 3 paragraphes (2 à 4 phrases par paragraphe), qui indique le matériel à utiliser, les étapes principales à suivre, le moment de la journée idéal, etc.  
+ - SecurityPrecautions : Paragraphe indiquant les principales précautions à prendre pour réaliser la solution en toute sécurité s'il y a lieu (ex: porter des gants, des lunettes de sécurité, etc.). Si la solution n'implique pas de précautions spécifiques, laisser la valeur vide (NULL)  
+
+
+ class_solutions.csv (Vous pouvez mettre des solutions "préventives" pour les plants en santé, et "préventives" ou "curatives" pour les plants malades) 
+ - ClassID : numéro de la classe pour lequel la solution s'applique  
+ - SolutionID : numéro de la solution qui s'applique à la classe en question

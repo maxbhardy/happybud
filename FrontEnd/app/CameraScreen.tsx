@@ -21,20 +21,16 @@ import {
 } from "react-native";
 import React from "react";
 import { Image } from "expo-image";
-import { Asset, useAssets } from 'expo-asset';
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ort from 'onnxruntime-react-native';
-import { Skia, useImage } from "@shopify/react-native-skia";
-import useDatabase from '../hooks/useDatabase'
+import * as FileSystem from "expo-file-system";
+
+import { openDatabase } from '../utils/database'
 import * as picture from '../utils/picture'
 import * as onnx from '../utils/onnx'
-
-const modelEncoder = require('../assets/models/generalist_model_2025_03_27_encoder.ort')
-const plantDecoder = require('../assets/models/generalist_model_plants_2025_03_27_decoder.ort')
-const tomatoDecoder = require('../assets/models/generalist_model_tomato_2025_03_27_decoder.ort')
+import * as mathlib from '../utils/mathlib'
+import useLocalFiles from '../hooks/useLocalFiles'
 
 export default function CmeraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -43,17 +39,16 @@ export default function CmeraScreen() {
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const router = useRouter();
-  const { plant } = useLocalSearchParams();
-  const [model, setModel] = useState(null);
+  const { plant, name } = useLocalSearchParams<{plant: string, name: string}>();
   const [runningModel, setRunningModel] = useState(false);
   const { width, height } = Dimensions.get("window");
   const squareSize = width * 0.8;
-  const db = useDatabase();
+  const dir = useLocalFiles();
 
   if (!permission) {
     return null;
   }
-
+  
   if (!permission.granted) {
     requestPermission();
   }
@@ -103,39 +98,38 @@ export default function CmeraScreen() {
   };
 
   const diagnosePicture = async () => {
-    setRunningModel(true);
+    const db = await openDatabase();
+    //await db.execAsync('DELETE FROM Historique');
+    //await db.execAsync('DELETE FROM HistoriqueResults');
+    let historiqueid;
 
-    // Check if model is loaded, and load it if not
     try {
-      const encoder = await onnx.load_model(modelEncoder);
-      const decoder = await onnx.load_model(plantDecoder);
-
-      if (uri) {
-        // Load image into a tensor
-        const inputTensor = await picture.image_to_tensor(uri);
-
-        if (!inputTensor) {
-          console.log('Cannot convert picture to pixel data');
-          return;
-        }
-
-        console.log('Image pixels are loaded into a tensor');
-
-        // Encode image
-        const encoded = await onnx.run_model(encoder, inputTensor);
-
-        // Decode image
-        const decoded = await onnx.run_model(decoder, encoded);
-        console.log(`${decoded.data}`)
+      setRunningModel(true);
+      if (!uri) {
+        console.log('Picture uri is undefined');
+      }
+      else if (!db) {
+        console.log('Database is undefined');
+      }
+      else if (!dir) {
+        console.log('Local working directory is undefined');
+      }
+      else {
+        historiqueid = await onnx.diagnose_picture(dir, uri, db, plant);
       }
     }
     catch (e) {
       console.log(e);
-      setRunningModel(false);
       throw e;
     }
-    setRunningModel(false);
-    router.push(`/IdentificationScreen?image=${encodeURIComponent(uri || '')}`);
+    finally {
+      setRunningModel(false);
+    }
+    await db.closeAsync();
+
+    if (historiqueid) {
+      router.push(`/IdentificationScreen?historiqueID=${historiqueid}`);
+    }
   }
 
   const renderPicture = () => {
@@ -152,10 +146,10 @@ export default function CmeraScreen() {
               />
             }
           </TouchableOpacity>
-          {/* <Text className="text-2xl font-bold text-center text-white">
-            Camera
-          </Text> */}
-          <View className="w-30" />
+          <Text className="text-2xl font-bold text-center text-[#ffffff]">
+            {name || "Camera"}
+          </Text>
+          <View className="w-[30]" />
         </View>
         <Image
           source={{ uri }}
@@ -166,7 +160,7 @@ export default function CmeraScreen() {
         />
         <View className="flex-1 mx-8">
           <Text className="text-2 text-center text-[#ffffff] pt-10">
-            Souhaitez-vous soukmettre la photo à l'algorithme ou la reprendre ?
+            Souhaitez-vous soumettre la photo à l'algorithme ou la reprendre ?
           </Text>
         </View>
         <View className="flex-1 w-full items-center flex-row justify-around">
@@ -200,7 +194,7 @@ export default function CmeraScreen() {
             }
           </TouchableOpacity>
           <Text className="text-2xl font-bold text-center text-[#ffffff]">
-            {plant || "Camera"}
+            {name || "Camera"}
           </Text>
           <TouchableOpacity onPress={toggleFlash}>
             {flash === "off" ? (
